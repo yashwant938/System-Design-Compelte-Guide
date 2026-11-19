@@ -1,14 +1,14 @@
-# System Design Complete Guide — Interactive HLD & LLD Mastery Atlas
+# System Design Complete Guide — Interactive HLD, In-The-Wild & LLD Mastery Atlas
 
-An all-in-one, interactive visual study platform covering **High-Level Design (HLD)** and **Low-Level Design (LLD)** for **Microsoft (L60–L65)**, **Google (L4–L6)**, **Amazon (SDE2/SDE3)**, and **Meta (E4–E6)** interviews.
+An all-in-one, interactive visual study platform covering **High-Level Design (HLD)**, **Real-World "In The Wild" Production Engineering Deep Dives**, and **Low-Level Design (LLD) / Machine Coding** for **Microsoft (L60–L65)**, **Google (L4–L6)**, **Amazon (SDE2/SDE3)**, and **Meta (E4–E6)** interviews.
 
-Inspired by the step-by-step animated visual clarity of [designed-to-scale](https://designed-to-scale.vercel.app/#/cdn/1) and the architectural breadth of [ByteByteGo `system-design-101`](https://github.com/ByteByteGoHq/system-design-101) — expanded with complete HLD case studies, full LLD mastery (SOLID + all 23 GoF patterns + 10 Machine Coding designs in Java/C++/Python/TypeScript), 6 live interactive simulators, a 50-question Staff mock exam, company rubrics, and visual cheatsheets.
+Synthesizes the animated step-by-step visual clarity of [designed-to-scale](https://designed-to-scale.vercel.app/#/cdn/1), the architectural breadth of [ByteByteGo `system-design-101`](https://github.com/ByteByteGoHq/system-design-101), and the real-world production breakdowns of [Hello Interview](https://www.hellointerview.com/learn/system-design/in-the-wild/shopify-inventory-reservations) — all inside **one self-contained interactive website** with zero "coming soon" placeholders.
 
 ---
 
-## What Is Inside (Zero "Coming Soon" Placeholders)
+## Complete Curriculum (14 Modules · 88 Interactive Lessons)
 
-### 1. Interactive Step-by-Step Course (`Learn` — 12 Modules · 67 Animated Lessons)
+### 1. Interactive Step-by-Step Course (`Learn` — 14 Modules · 88 Animated Lessons)
 Every lesson features a **2.5D Isometric SVG Architecture Stage** with live telemetry KPIs, animated request/response/event packets, `Replay (R)` / `Pause (Space)` controls, keyboard navigation (`← →`), hash deep-links (`#/<lesson>/<step>`), auto-checking `YOU'LL LEARN` objectives, and a **Staff-Level Deep Engineering Vault** (Trade-off Matrices, Capacity Math, Failure Modes & Production Code):
 
 | # | Module | Track | Lessons | Key Highlights |
@@ -22,9 +22,11 @@ Every lesson features a **2.5D Isometric SVG Architecture Stage** with live tele
 | **07** | **Security & Enterprise** | HLD | 3 | OAuth 2.0 + PKCE / OIDC / JWT Rotation, RBAC / ABAC / Google Zanzibar ReBAC, KMS Envelope Encryption & Multi-Tenant Isolation (Microsoft L62/L63) |
 | **08** | **Shipping & DevOps** | HLD | 2 | Testing Pyramid, Shadow Traffic & Chaos Engineering; CI/CD, Docker/K8s, Canary & Expand-Contract DB Migrations |
 | **09** | **Fintech, AI & Real-World** | HLD | 4 | Payment Systems, UPI & Immutable Double-Entry Ledger; Hybrid RAG + vLLM PagedAttention; Discord ScyllaDB & Hotstar 50M; Prime Video -90% Monolith, Netflix Open Connect & Stack Overflow |
-| **10** | **Whole Systems (HLD)** | HLD | 13 | HLD/LLD Two Zoom Levels + **12 Full Case Studies**: TinyURL, Twitter/X News Feed, WhatsApp/Teams Chat, YouTube/Netflix, Uber H3 Dispatch, Google Autocomplete & Crawler, Google Docs/Loop (OT/CRDT), BookMyShow Flash Sale, DynamoDB KV Store, Dropbox/OneDrive, Distributed Rate Limiter, Datadog/Azure Monitor & Notifications |
-| **11** | **LLD Core & 23 Patterns** | LLD | 4 | OOP & UML Mastery, Interactive **SOLID Bad vs Good Code Comparator**, Searchable **All 23 Gang of Four Design Patterns Explorer**, Concurrency & Deadlock Lock Ordering |
-| **12** | **LLD Machine Coding** | LLD | 10 | Full UML + Clean Multi-Language Code (**Java / C++ / Python / TypeScript**): Parking Lot, Elevator LOOK Dispatcher, BookMyShow SeatLock TTL, Splitwise Debt Simplifier, LRU/LFU+TTL Cache, Rate Limiter SDK, Async Log4j Logger, Vending Machine/ATM, Chess Engine, Multi-Threaded Task Scheduler |
+| **10** | **Whole Systems (HLD)** | HLD | 13 | HLD/LLD Two Zoom Levels + **12 Core Systems**: TinyURL, Twitter/X News Feed, WhatsApp/Teams Chat, YouTube/Netflix, Uber H3 Dispatch, Google Autocomplete & Web Crawler, Google Docs/Loop (OT/CRDT), BookMyShow Flash Sale, DynamoDB KV Store, Dropbox/OneDrive, Distributed Rate Limiter, Datadog/Azure Monitor & Priority Notifications |
+| **11** | **Advanced HLD Designs** | HLD | 10 | **Hello Interview & Staff FAANG Classics**: Ad Click Aggregator (Flink/ClickHouse/Billing), LeetCode Code Judge (Firecracker microVMs), Top-K Heavy Hitters (Count-Min Sketch), FB Live Comments (2-tier SSE Fanout Tree), Real-Time Post Search (Doc-Partitioned Inverted Index), High-Frequency Stock Exchange (LMAX Single-Thread Matching Engine), Airbnb/Hotel Booking (GiST Exclusion), DoorDash Food Delivery (3-Sided Saga + VRP), Real-Time Online Auction (Redis Lua + Soft-Close), Microsoft Teams / Zoom Video Conferencing (Cascaded SFU + Simulcast) |
+| **12** | **In The Wild (Big Tech)** | HLD | 6 | **Shopify** (Moving Inventory Reservations from Redis → MySQL 8 `FOR UPDATE SKIP LOCKED` + ProxySQL Ops), **Slack** (Kafka + `JQRelay` in front of Redis Job Queues), **Figma** (Multiplayer Simplified CRDT + Fractional Indexing), **Meta** (`ZGateway` Multiplexing Proxy, TAO & Memcached Leases), **Spotify** (Exabyte Data Lake Random Access Parquet RAP), **Stripe / Uber / Netflix** (Atomic Idempotency Recovery Points, Docstore, Adaptive Concurrency Limits) |
+| **13** | **LLD Core & 23 Patterns** | LLD | 4 | OOP & UML Mastery, Interactive **SOLID Bad vs Good Code Comparator**, Searchable **All 23 Gang of Four Design Patterns Explorer**, Concurrency & Deadlock Lock Ordering |
+| **14** | **LLD Machine Coding** | LLD | 15 | Full UML + Clean Multi-Language Code (**Java / C++ / Python / TypeScript**): Parking Lot, Elevator LOOK Dispatcher, BookMyShow SeatLock TTL, Splitwise Debt Simplifier, LRU/LFU+TTL Cache, Rate Limiter SDK, Async Log4j Logger, Vending Machine/ATM, Chess Engine, Multi-Threaded Task Scheduler, **Amazon Locker**, **Uber Dispatch & Surge Decorator**, **In-Memory Kafka Pub/Sub Broker**, **Thread-Safe Online Auction**, and **Composite File System & Specification `find()`** |
 
 ### 2. Interactive Engineering Workbench (`Design Lab` — 6 Live Simulators)
 1. **Consistent Hashing Ring Lab** — Add/remove nodes, adjust vNodes, and compare remapping % vs `hash(k) % N`.
@@ -35,12 +37,12 @@ Every lesson features a **2.5D Isometric SVG Architecture Stage** with live tele
 6. **LLD Concurrency Lab** — Live BookMyShow Seat A5 dual-user race simulator (Lock ON vs OFF + 10s TTL) + 3-Car Elevator LOOK Dispatcher.
 
 ### 3. Interview War Room (`Practice`)
-- **50-Question Staff-Level HLD & LLD Mock Exam** with domain filters, instant explanations, and accuracy breakdown.
+- **75-Question Staff-Level HLD, In-The-Wild & LLD Mock Exam** with domain filters, instant explanations, and accuracy breakdown.
 - **Big Tech Hiring Rubrics**: Microsoft (L60–L65), Google (L4–L6), Amazon (L5–L6), and Meta (E4–E6).
 - **60-Day Study Roadmap**: 16 checkable milestones persisted automatically in `localStorage`.
 
 ### 4. Visual Reference Atlas (`Cheatsheets`)
-- 45-Minute HLD & LLD Interview Pacing Blueprints, Jeff Dean Latency Numbers Ladder, Powers of 2 & HTTP Status Codes, "When to Use What" Decision Matrices, and All 23 GoF Patterns Quick-Scan Grid.
+- **6 Core System Design Patterns Matrix** (Real-Time Updates, Scaling Reads, Scaling Writes, High Contention, Long-Running Tasks, Multi-Step Workflows), 45-Minute HLD & LLD Interview Blueprints, Jeff Dean Latency Numbers Ladder, Powers of 2 & HTTP Status Codes, "When to Use What" Decision Matrices, and All 23 GoF Patterns Quick-Scan Grid.
 
 ---
 

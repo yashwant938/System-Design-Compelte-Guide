@@ -3,7 +3,7 @@
 export const MODULE_12_LLD_SYSTEMS = {
   id: 'mod-12-lld-systems',
   number: '12',
-  title: 'LLD Machine Coding (10)',
+  title: 'LLD Machine Coding (15)',
   track: 'lld',
   lessons: [
     {
@@ -1357,6 +1357,590 @@ class TaskScheduler:
                 if interval > 0:
                     heapq.heappush(self._heap, (run_at + interval, interval, fn))
             self._pool.submit(fn)`,
+        },
+      },
+    },
+
+    {
+      id: 'lld-amazon-locker',
+      title: 'LLD: Amazon Locker / Package Pickup',
+      subtitle: 'Amazon’s #1 asked LLD: Best-Fit compartment allocation, secure OTP with 3-day TTL, expiration sweeper & return drop-off.',
+      duration: '11 min',
+      level: 'Intermediate',
+      companies: ['Amazon', 'Microsoft', 'Flipkart'],
+      tags: ['amazon locker', 'best fit', 'strategy', 'otp', 'ttl', 'state machine', 'machine coding'],
+      objectives: [
+        'Allocate the smallest available compartment fitting a package via Best-Fit Strategy',
+        'Generate cryptographically random single-use 6-digit OTPs with 72-hour TTL expiry',
+        'Handle concurrent courier deposits, customer pickups, expired package sweeps & returns cleanly',
+      ],
+      steps: [
+        {
+          shortLabel: 'Best-Fit UML',
+          stage: 'SOLUTION',
+          title: 'Smallest-Fitting Compartment Strategy + Atomic Claim + OTP Token',
+          body: [
+            'Never put an envelope inside an `XL` compartment when an `S` compartment is free! Order compartment sizes (`S < M < L < XL`) and use **`BestFitAllocationStrategy`**: check free queues in ascending size order starting from `package.size`, claiming atomically with `AtomicBoolean.compareAndSet(false, true)`.',
+            'Generate a secure `AccessCode(otp, compartmentId, expiresAt = now + 72h)` and notify the customer via `NotificationObserver`!',
+          ],
+          callout: {
+            type: 'INTERVIEW SIGNAL',
+            text: 'In Amazon LLD interviews, proactively ask about **Customer Returns** (reusing the exact same `deposit()` flow with a Return Code!) and **Expired Package Sweeps** (freeing compartments after 3 days when a courier collects unclaimed packages)!',
+          },
+          scene: {
+            hud: [
+              { label: 'ALLOCATION', value: 'Best-Fit S→M→L→XL', status: 'good' },
+              { label: 'SECURITY', value: 'SecureRandom OTP', status: 'good' },
+              { label: 'TTL EXPIRY', value: '72 Hours Auto-Sweep', status: 'info' },
+              { label: 'CONCURRENCY', value: 'Per-Compartment CAS', status: 'good' },
+            ],
+            nodes: [
+              { id: 'loc', type: 'uml', x: 165, y: 215, label: 'LockerService', sublabel: '«Facade»', tone: 'blue', umlFields: ['- strat: BestFitStrategy', '- tokens: Map<OTP, Token>'], umlMethods: ['+ deposit(pkg): OTP', '+ pickup(otp): Package'] },
+              { id: 'comp', type: 'uml', x: 545, y: 120, label: 'Compartment', tone: 'green', umlFields: ['size: S|M|L|XL', 'state: FREE|OCC|EXP'], umlMethods: ['+ tryClaim(): bool', '+ openAndRelease()'] },
+              { id: 'tok', type: 'uml', x: 545, y: 315, label: 'AccessToken', tone: 'purple', umlFields: ['otpHash, compId', 'expiresAt: Instant'], umlMethods: ['+ isValid(otp): bool'] },
+            ],
+            edges: [
+              { from: 'loc', to: 'comp', label: 'best-fit CAS', packetColor: 'green', speed: 1.6 },
+              { from: 'loc', to: 'tok', label: 'mint 72h OTP', packetColor: 'purple', speed: 1.7 },
+            ],
+            legend: [{ label: 'best-fit compartment + OTP', tone: 'green' }],
+          },
+        },
+        {
+          shortLabel: 'Pickup & Sweep',
+          stage: 'TECHNIQUE',
+          title: 'Single-Use OTP Invalidation & Scheduled Expired-Package Cleanup',
+          body: [
+            'When the customer enters their 6-digit OTP on the locker kiosk, `pickup(otp)` atomically removes the token (preventing replay!), validates `now < expiresAt`, opens the hardware latch, and resets the compartment to `AVAILABLE`. A background sweeper flags expired compartments `EXPIRED_PENDING_PICKUP` for the next courier!',
+          ],
+          callout: {
+            type: 'WATCH OUT',
+            text: 'Guard the kiosk keypad with **OTP Brute-Force Rate Limiting** (lock code after 5 wrong guesses) and store only hashed OTPs in memory/DB!',
+          },
+          scene: {
+            hud: [
+              { label: 'OTP REPLAY', value: 'Single-Use Removed', status: 'good' },
+              { label: 'BRUTE FORCE', value: 'Max 5 Tries Lock', status: 'good' },
+              { label: 'RETURNS', value: 'Same Deposit Flow', status: 'info' },
+              { label: 'HARDWARE', value: 'DoorController Port', status: 'info' },
+            ],
+            nodes: [
+              { id: 'k', type: 'users', x: 120, y: 215, label: 'Locker Kiosk', sublabel: 'PIN: 482-910', tone: 'slate' },
+              { id: 'v', type: 'hex', x: 390, y: 215, label: 'Token Verifier', sublabel: 'Atomic Pop + TTL', tone: 'green' },
+              { id: 'd', type: 'hex', x: 645, y: 215, label: 'Hardware Latch', sublabel: 'Pop Door #14 ✓', tone: 'purple' },
+            ],
+            edges: [
+              { from: 'k', to: 'v', label: 'enter OTP', packetColor: 'green', bidirectional: true, speed: 1.6 },
+              { from: 'v', to: 'd', label: 'unlock & free', packetColor: 'purple', speed: 1.6 },
+            ],
+            legend: [{ label: 'atomic pickup verification', tone: 'green' }],
+          },
+        },
+      ],
+      deepDive: {
+        codeTitle: 'Amazon Locker Best-Fit + Atomic OTP Service (Java & Python)',
+        codeSnippets: {
+          java: `enum Size { SMALL, MEDIUM, LARGE, XL }
+
+class Compartment {
+    final String id; final Size size;
+    private final AtomicBoolean occupied = new AtomicBoolean(false);
+    private volatile String packageId;
+    Compartment(String id, Size size) { this.id = id; this.size = size; }
+    boolean tryDeposit(String pkgId) {
+        if (occupied.compareAndSet(false, true)) { this.packageId = pkgId; return true; }
+        return false;
+    }
+    String release() { String p = packageId; packageId = null; occupied.set(false); return p; }
+}
+
+class LockerService {
+    private final EnumMap<Size, List<Compartment>> bySize = new EnumMap<>(Size.class);
+    private final ConcurrentHashMap<String, AccessToken> tokens = new ConcurrentHashMap<>();
+    private final SecureRandom rng = new SecureRandom();
+
+    public String deposit(String pkgId, Size pkgSize) {
+        for (Size s : Size.values()) {
+            if (s.ordinal() < pkgSize.ordinal()) continue; // Best-Fit ascending!
+            for (Compartment c : bySize.getOrDefault(s, List.of())) {
+                if (c.tryDeposit(pkgId)) {
+                    String otp = String.format("%06d", rng.nextInt(1_000_000));
+                    tokens.put(otp, new AccessToken(otp, c, Instant.now().plus(Duration.ofDays(3))));
+                    return otp;
+                }
+            }
+        }
+        throw new IllegalStateException("No fitting compartment free");
+    }
+
+    public String pickup(String otp) {
+        AccessToken t = tokens.remove(otp); // Single-use atomic pop!
+        if (t == null || Instant.now().isAfter(t.expiresAt())) throw new IllegalArgumentException("Invalid/Expired OTP");
+        return t.compartment().release();
+    }
+}`,
+          python: `import secrets, time
+from threading import Lock
+
+SIZES = ["S", "M", "L", "XL"]
+
+class LockerHub:
+    def __init__(self, compartments):
+        self._lock = Lock()
+        self._compartments = compartments
+        self._tokens = {}
+
+    def deposit(self, pkg_id: str, pkg_size: str) -> str:
+        min_idx = SIZES.index(pkg_size)
+        with self._lock:
+            for size in SIZES[min_idx:]:
+                for c in self._compartments:
+                    if c.size == size and not c.occupied:
+                        c.occupied, c.pkg_id = True, pkg_id
+                        otp = f"{secrets.randbelow(1_000_000):06d}"
+                        self._tokens[otp] = (c, time.time() + 72 * 3600)
+                        return otp
+        raise RuntimeError("Locker full")`,
+        },
+      },
+    },
+
+    {
+      id: 'lld-uber-matching',
+      title: 'LLD: Ride-Sharing / Uber Cab Dispatch',
+      subtitle: 'Pluggable DriverMatchingStrategy, Surge/Coupon Pricing Decorator, Trip State Machine & Observer Rider Alerts.',
+      duration: '10 min',
+      level: 'Intermediate',
+      companies: ['Uber', 'Lyft', 'Ola', 'Microsoft'],
+      tags: ['uber lld', 'ride sharing', 'matching strategy', 'decorator pricing', 'state machine', 'observer'],
+      objectives: [
+        'Separate Rider/Driver entities from TripManager orchestration and MatchingStrategy',
+        'Compose Base Fare + Surge Multiplier + Promo Coupon cleanly using the Decorator pattern',
+        'Prevent double-assigning a driver using per-driver `AtomicReference<DriverStatus>` CAS',
+      ],
+      steps: [
+        {
+          shortLabel: 'Dispatch & Surge',
+          stage: 'SOLUTION',
+          title: 'Matching Strategy + Composable Pricing Decorator + Atomic Driver Claim',
+          body: [
+            '**Matching**: `DriverMatchingStrategy` swaps cleanly between `NearestDriverStrategy` and `HighestRatedDriverStrategy`. Claiming a driver uses **`driver.status.compareAndSet(AVAILABLE, ON_TRIP)`** so two concurrent ride requests never grab the same cab!',
+            '**Pricing**: Wrap `BaseFareCalculator` with **`SurgeDecorator(1.5x)`** and **`PromoDiscountDecorator(-$5)`** — dynamically stacking any combination of tolls, airport fees, surge, and promos!',
+          ],
+          callout: {
+            type: 'KEY IDEA',
+            text: 'Use **Observer** (`TripListener`) so every Trip State transition (`REQUESTED → ASSIGNED → STARTED → COMPLETED`) automatically pushes live SMS/App alerts, triggers receipt invoicing, and updates driver rating eligibility!',
+          },
+          scene: {
+            hud: [
+              { label: 'MATCHING', value: 'Strategy Pluggable', status: 'good' },
+              { label: 'PRICING', value: 'Decorator Stack', status: 'good' },
+              { label: 'DRIVER CLAIM', value: 'Atomic CAS ✓', status: 'good' },
+              { label: 'TRIP LIFECYCLE', value: 'State + Observer', status: 'info' },
+            ],
+            nodes: [
+              { id: 'tm', type: 'uml', x: 165, y: 215, label: 'TripManager', sublabel: '«Facade»', tone: 'blue', umlFields: ['- matcher: MatchStrategy', '- pricing: FareCalculator'], umlMethods: ['+ requestRide(r, dst)', '+ completeTrip(id)'] },
+              { id: 'm', type: 'uml', x: 545, y: 120, label: '«interface» MatchStrategy', tone: 'green', umlFields: ['Nearest | TopRated'], umlMethods: ['+ findDriver(loc): Driver'] },
+              { id: 'p', type: 'uml', x: 545, y: 315, label: 'FareDecorator', sublabel: 'Surge + Promo + Base', tone: 'purple', umlFields: ['- wrapped: FareCalc'], umlMethods: ['+ computeCents(trip)'] },
+            ],
+            edges: [
+              { from: 'tm', to: 'm', label: 'CAS claim cab', packetColor: 'green', speed: 1.6 },
+              { from: 'tm', to: 'p', label: 'compute fare', packetColor: 'purple', speed: 1.7 },
+            ],
+            legend: [{ label: 'strategy + decorator ride engine', tone: 'green' }],
+          },
+        },
+        {
+          shortLabel: 'Trip Lifecycle',
+          stage: 'TECHNIQUE',
+          title: 'Guarding Illegal State Transitions & Driver Cancellation Re-Dispatch',
+          body: [
+            'Enforce strict `TripStatus` transitions (`REQUESTED → DRIVER_ASSIGNED → IN_PROGRESS → COMPLETED | CANCELLED`). If the driver cancels before pickup, release `driver.status → AVAILABLE`, apply cancellation policy, and automatically loop `TripManager.reDispatch()` excluding the declining driver ID!',
+          ],
+          callout: {
+            type: 'INTERVIEW SIGNAL',
+            text: 'Passing an `excludedDriverIds` set into `findDriver()` cleanly prevents immediately re-offering a canceled ride back to the exact same driver!',
+          },
+          scene: {
+            hud: [
+              { label: 'CANCEL RETRY', value: 'Excludes Decliner', status: 'good' },
+              { label: 'ILLEGAL OPS', value: 'Rejected by State', status: 'good' },
+              { label: 'RECEIPTS', value: 'Observer Triggered', status: 'info' },
+              { label: 'CONCURRENCY', value: 'Zero Double-Match', status: 'good' },
+            ],
+            nodes: [
+              { id: 's1', type: 'hex', x: 120, y: 215, label: 'REQUESTED', sublabel: 'Find Cab', tone: 'amber' },
+              { id: 's2', type: 'hex', x: 325, y: 215, label: 'ASSIGNED', sublabel: 'CAS Driver ✓', tone: 'blue' },
+              { id: 's3', type: 'hex', x: 525, y: 215, label: 'IN_PROGRESS', sublabel: 'GPS Track', tone: 'purple' },
+              { id: 's4', type: 'hex', x: 685, y: 215, label: 'COMPLETED', sublabel: 'Charge + Rate', tone: 'green' },
+            ],
+            edges: [
+              { from: 's1', to: 's2', label: 'accept', packetColor: 'blue', speed: 1.7 },
+              { from: 's2', to: 's3', label: 'OTP start', packetColor: 'purple', speed: 1.7 },
+              { from: 's3', to: 's4', label: 'drop-off', packetColor: 'green', speed: 1.7 },
+            ],
+            legend: [{ label: 'trip state machine', tone: 'green' }],
+          },
+        },
+      ],
+      deepDive: {
+        codeTitle: 'Uber Dispatch CAS + Decorator Pricing (Java)',
+        codeSnippets: {
+          java: `interface FareCalculator { long calculateCents(double km, double mins); }
+
+class BaseFare implements FareCalculator {
+    public long calculateCents(double km, double mins) { return Math.round(250 + km * 120 + mins * 25); }
+}
+
+class SurgeDecorator implements FareCalculator {
+    private final FareCalculator next; private final double multiplier;
+    SurgeDecorator(FareCalculator next, double m) { this.next = next; this.multiplier = m; }
+    public long calculateCents(double km, double mins) { return Math.round(next.calculateCents(km, mins) * multiplier); }
+}
+
+class Driver {
+    final String id; final AtomicReference<String> status = new AtomicReference<>("AVAILABLE");
+    Driver(String id) { this.id = id; }
+    boolean tryClaim() { return status.compareAndSet("AVAILABLE", "ON_TRIP"); }
+    void release() { status.set("AVAILABLE"); }
+}`,
+        },
+      },
+    },
+
+    {
+      id: 'lld-pubsub-broker',
+      title: 'LLD: In-Memory Kafka / Pub-Sub Broker',
+      subtitle: 'Multi-topic append-only log, independent per-subscriber offsets, `Condition` non-blocking wakeup & offset replay.',
+      duration: '11 min',
+      level: 'Advanced',
+      companies: ['Amazon', 'Microsoft', 'LinkedIn', 'Confluent'],
+      tags: ['pubsub lld', 'kafka lld', 'message broker', 'offset', 'replay', 'condition variable', 'concurrency'],
+      objectives: [
+        'Model Topics as append-only immutable message logs (so multiple subscribers read independently!)',
+        'Give each Subscriber its own `AtomicInteger offset` and dedicated non-blocking worker loop',
+        'Support `resetOffset(topic, subscriber, newOffset)` to replay historical events seamlessly',
+      ],
+      steps: [
+        {
+          shortLabel: 'Log & Offsets',
+          stage: 'SOLUTION',
+          title: 'Append-Only Topic Log + Independent Subscriber Offset Workers',
+          body: [
+            'Unlike a destructive queue, an in-memory Kafka broker stores messages in an **append-only `List<Message>`** inside each `Topic`. Each `TopicSubscriber` owns an **`AtomicInteger offset`** and a **`SubscriberWorker`** thread!',
+            'When a producer calls `publish(topic, msg)`, the topic appends the message and calls **`worker.wakeUp()`** (`notify()`/`Condition.signal()`) on every subscriber — zero busy-waiting! Calling **`resetOffset(sub, 0)`** sets `offset = 0` and wakes the worker to replay from message #0!',
+          ],
+          callout: {
+            type: 'INTERVIEW SIGNAL',
+            text: 'Slow Consumer Isolation: Because every subscriber has its own worker thread + offset, a slow Analytics subscriber taking 500 ms/msg NEVER stalls a fast Real-Time Alert subscriber!',
+          },
+          scene: {
+            hud: [
+              { label: 'STORAGE', value: 'Append-Only Log', status: 'good' },
+              { label: 'OFFSETS', value: 'Per-Subscriber Atomic', status: 'good' },
+              { label: 'REPLAY', value: 'resetOffset(0) ✓', status: 'good' },
+              { label: 'IDLE CPU', value: '0% (wait/notify)', status: 'good' },
+            ],
+            nodes: [
+              { id: 'pub', type: 'hex', x: 110, y: 215, label: 'Publisher', sublabel: 'publish(topic, m)', tone: 'blue' },
+              { id: 'top', type: 'queue', x: 350, y: 215, label: 'Topic Log', sublabel: '[m0, m1, m2, m3]', tone: 'amber', badge: 'immutable log', badgeTone: 'amber' },
+              { id: 'w1', type: 'hex', x: 635, y: 120, label: 'SubWorker A', sublabel: 'offset = 3 (Fast)', tone: 'green' },
+              { id: 'w2', type: 'hex', x: 635, y: 315, label: 'SubWorker B', sublabel: 'offset = 1 (Replay)', tone: 'purple' },
+            ],
+            edges: [
+              { from: 'pub', to: 'top', label: 'append + signalAll', packetColor: 'blue', speed: 1.6 },
+              { from: 'top', to: 'w1', label: 'read[3]', packetColor: 'green', speed: 1.5 },
+              { from: 'top', to: 'w2', label: 'read[1]', packetColor: 'purple', speed: 2.1 },
+            ],
+            legend: [{ label: 'independent offset consumption', tone: 'green' }],
+          },
+        },
+        {
+          shortLabel: 'Groups & Threading',
+          stage: 'TECHNIQUE',
+          title: 'Scaling to Partitioned Consumer Groups with Sticky Key Hashing',
+          body: [
+            'Follow-up extension: "How do you add Consumer Groups?" Partition each `Topic` into `P` independent `Partition` logs routed by `hash(key) % P`, and assign each partition to at most 1 worker inside a Consumer Group — preserving strict per-key ordering with `P`-way concurrency!',
+          ],
+          callout: {
+            type: 'GOOD TO KNOW',
+            text: 'Always use a `while (offset >= log.size()) wait()` loop (never `if`) to guard against **spurious wakeups** in Java/C++ condition variables!',
+          },
+          scene: {
+            hud: [
+              { label: 'SPURIOUS GUARD', value: 'while() Loop Wait', status: 'good' },
+              { label: 'KEY ORDERING', value: 'hash(key) % P', status: 'good' },
+              { label: 'ISOLATION', value: 'Slow Sub Safe ✓', status: 'good' },
+              { label: 'SHUTDOWN', value: 'Interrupt Cleanly', status: 'info' },
+            ],
+            nodes: [
+              { id: 'k', type: 'hex', x: 165, y: 215, label: 'Partition Router', sublabel: 'hash(orderId) % 4', tone: 'blue' },
+              { id: 'p0', type: 'queue', x: 525, y: 125, label: 'Partition 0', sublabel: 'Consumer #1', tone: 'green' },
+              { id: 'p1', type: 'queue', x: 525, y: 305, label: 'Partition 1', sublabel: 'Consumer #2', tone: 'purple' },
+            ],
+            edges: [
+              { from: 'k', to: 'p0', label: 'ordered key A', packetColor: 'green', speed: 1.7 },
+              { from: 'k', to: 'p1', label: 'ordered key B', packetColor: 'purple', speed: 1.7 },
+            ],
+            legend: [{ label: 'partitioned consumer group', tone: 'green' }],
+          },
+        },
+      ],
+      deepDive: {
+        codeTitle: 'In-Memory Kafka Topic & Replayable Offset Worker (Java)',
+        codeSnippets: {
+          java: `record Message(String id, String payload) {}
+interface Subscriber { String id(); void consume(Message m); }
+
+class TopicSubscriberWorker implements Runnable {
+    private final List<Message> log;
+    private final Subscriber sub;
+    private final AtomicInteger offset = new AtomicInteger(0);
+
+    TopicSubscriberWorker(List<Message> log, Subscriber sub) { this.log = log; this.sub = sub; }
+
+    public synchronized void wakeUp() { notify(); }
+    public synchronized void resetOffset(int newOffset) { offset.set(newOffset); notify(); }
+
+    public void run() {
+        while (!Thread.currentThread().isInterrupted()) {
+            Message msg;
+            synchronized (this) {
+                while (offset.get() >= log.size()) {
+                    try { wait(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); return; }
+                }
+                msg = log.get(offset.getAndIncrement());
+            }
+            sub.consume(msg); // Run outside lock so slow consumers never block producers!
+        }
+    }
+}`,
+        },
+      },
+    },
+
+    {
+      id: 'lld-auction-system',
+      title: 'LLD: Thread-Safe Online Auction System',
+      subtitle: 'Per-auction ReentrantLock bid guard, Proxy Auto-Bidding Strategy, Observer outbid alerts & scheduled closing.',
+      duration: '10 min',
+      level: 'Intermediate',
+      companies: ['Amazon', 'eBay', 'Microsoft', 'Flipkart'],
+      tags: ['auction lld', 'bidding', 'observer', 'reentrantlock', 'proxy bid', 'concurrency'],
+      objectives: [
+        'Serialize bids per auction using fine-grained per-auction `ReentrantLock` (parallel across auctions!)',
+        'Validate active status, `bid > currentHigh + minIncrement`, and reject self-outbidding',
+        'Notify outbid participants cleanly via Observer + auto-close via `ScheduledExecutorService`',
+      ],
+      steps: [
+        {
+          shortLabel: 'Per-Auction Lock',
+          stage: 'SOLUTION',
+          title: 'Fine-Grained Auction Lock + Outbid Observer + Scheduled Closer',
+          body: [
+            'Never lock the entire `AuctionService`! Give every `Auction` object its own **`ReentrantLock`**. Inside `placeBid(userId, cents)`: verify `status == OPEN && Instant.now().isBefore(endTime)` and `cents >= currentHigh + minIncrement`, record the bid in `bidHistory`, update `highestBid`, and notify the previous leader via **`BidObserver.onOutbid()`** *after* releasing the lock!',
+          ],
+          callout: {
+            type: 'WATCH OUT',
+            text: 'ALWAYS fire `Observer` callbacks (email/push notifications) **OUTSIDE the `ReentrantLock`** — otherwise a slow notification client holds the auction lock and stalls all incoming bids!',
+          },
+          scene: {
+            hud: [
+              { label: 'LOCK SCOPE', value: 'Per-Auction Mutex', status: 'good' },
+              { label: 'OBSERVERS', value: 'Fired Outside Lock ✓', status: 'good' },
+              { label: 'AUTO-CLOSE', value: 'ScheduledExecutor', status: 'good' },
+              { label: 'EXTENSION', value: 'Proxy Auto-Bid', status: 'info' },
+            ],
+            nodes: [
+              { id: 'svc', type: 'uml', x: 165, y: 215, label: 'AuctionService', tone: 'blue', umlFields: ['- auctions: ConcurrentMap', '- scheduler: ScheduledPool'], umlMethods: ['+ createAuction(cfg)', '+ placeBid(aid, u, amt)'] },
+              { id: 'auc', type: 'uml', x: 545, y: 120, label: 'Auction', sublabel: 'Per-Item Lock', tone: 'green', umlFields: ['- lock: ReentrantLock', '- highestBid: Bid'], umlMethods: ['+ tryBid(u, amt): BidRes', '+ close(): Winner'] },
+              { id: 'obs', type: 'uml', x: 545, y: 315, label: '«interface» AuctionObs', tone: 'purple', umlFields: ['Outbid | Winner Alerts'], umlMethods: ['+ onOutbid(prevUser)'] },
+            ],
+            edges: [
+              { from: 'svc', to: 'auc', label: 'lock + validate', packetColor: 'green', speed: 1.6 },
+              { from: 'svc', to: 'obs', label: 'async notify', packetColor: 'purple', speed: 1.8 },
+            ],
+            legend: [{ label: 'fine-grained lock + async observer', tone: 'green' }],
+          },
+        },
+        {
+          shortLabel: 'Proxy Bidding',
+          stage: 'TECHNIQUE',
+          title: 'Adding Automatic Proxy Bidding Without Breaking Existing Bid Flow',
+          body: [
+            'Encapsulate bid resolution inside a `BidEvaluationStrategy` (`ManualBidStrategy` vs `ProxyAutoBidStrategy`). When Alice sets secret max `$500` and Bob bids `$300`, `ProxyAutoBidStrategy` atomically resolves the high bid to Alice at `$310` inside the same per-auction critical section!',
+          ],
+          callout: {
+            type: 'INTERVIEW SIGNAL',
+            text: 'Separating **Bid Validation & Resolution (Strategy)** from **Auction Storage** lets you add Reserve Prices, Soft-Close Extensions, and Proxy Bidding cleanly (Open/Closed Principle!).',
+          },
+          scene: {
+            hud: [
+              { label: 'ALICE MAX', value: '$500 (Secret)', status: 'info' },
+              { label: 'BOB BIDS', value: '$300', status: 'warn' },
+              { label: 'AUTO-RESOLVE', value: 'Alice Leads @ $310', status: 'good' },
+              { label: 'DEADLOCKS', value: 'Zero (1 Lock)', status: 'good' },
+            ],
+            nodes: [
+              { id: 'b', type: 'users', x: 135, y: 215, label: 'Bob ($300)', sublabel: 'Manual Bid', tone: 'amber' },
+              { id: 'st', type: 'hex', x: 400, y: 215, label: 'ProxyBidStrategy', sublabel: 'Alice Max=$500 → $310', tone: 'green' },
+              { id: 'ob', type: 'users', x: 655, y: 215, label: 'Outbid Alert', sublabel: 'Notify Bob Instant!', tone: 'purple' },
+            ],
+            edges: [
+              { from: 'b', to: 'st', label: 'bid $300', packetColor: 'amber', speed: 1.7 },
+              { from: 'st', to: 'ob', label: 'outbid @ $310', packetColor: 'purple', speed: 1.6 },
+            ],
+            legend: [{ label: 'atomic proxy bid resolution', tone: 'green' }],
+          },
+        },
+      ],
+      deepDive: {
+        codeTitle: 'Thread-Safe Auction with Async Outbid Observer (Java)',
+        codeSnippets: {
+          java: `class Auction {
+    final String id; final long minIncrement; final Instant endTime;
+    private final ReentrantLock lock = new ReentrantLock();
+    private volatile boolean closed = false;
+    private Bid highestBid;
+
+    public Optional<String> placeBid(String userId, long cents) {
+        String outbidUser = null;
+        lock.lock();
+        try {
+            if (closed || Instant.now().isAfter(endTime)) throw new IllegalStateException("Auction ended");
+            long minAllowed = highestBid == null ? minIncrement : highestBid.cents() + minIncrement;
+            if (cents < minAllowed) throw new IllegalArgumentException("Bid too low; need >= " + minAllowed);
+            if (highestBid != null && !highestBid.userId().equals(userId)) outbidUser = highestBid.userId();
+            highestBid = new Bid(userId, cents, Instant.now());
+        } finally { lock.unlock(); }
+        return Optional.ofNullable(outbidUser); // Caller notifies OUTSIDE lock!
+    }
+}`,
+        },
+      },
+    },
+
+    {
+      id: 'lld-file-system',
+      title: 'LLD: In-Memory File System & Composable `find`',
+      subtitle: 'Amazon & Microsoft classic: Composite Pattern tree (`File`/`Directory`) + Specification Pattern composable search filters (`AND`/`OR`/`NOT`).',
+      duration: '10 min',
+      level: 'Beginner',
+      companies: ['Amazon', 'Microsoft', 'Google', 'Dropbox'],
+      tags: ['file system', 'unix find', 'composite pattern', 'specification pattern', 'trie', 'machine coding'],
+      objectives: [
+        'Model hierarchical folders & files uniformly via the Composite Pattern (`FsNode`)',
+        'Build an infinitely extensible Unix `find` API using the Specification Pattern (`AndFilter`, `OrFilter`, `NotFilter`)',
+        'Support O(path_depth) path traversal, symlink cycle protection, and recursive directory size calculation',
+      ],
+      steps: [
+        {
+          shortLabel: 'Composite + Spec',
+          stage: 'SOLUTION',
+          title: 'Composite Tree + Specification Pattern = Zero-Edit Extensible `find()`',
+          body: [
+            '**Amazon’s famous "Design Linux `find` command" LLD question**: Requirements start simple ("find all `.xml` files > 5 MB"), then the interviewer adds: "Now find files matching `(ext == .log OR size > 10MB) AND NOT hidden`!"',
+            '**Winning Design**: 1) **Composite Pattern** (`FsNode` implemented by `FileNode` and `DirectoryNode`) so directories nest arbitrarily, 2) **Specification Pattern** (`FileFilter.matches(FileNode)`) with composable boolean combinators **`AndFilter`**, **`OrFilter`**, and **`NotFilter`**!',
+          ],
+          callout: {
+            type: 'INTERVIEW SIGNAL',
+            text: 'Using **Composite + Specification Pattern** turns a messy multi-parameter `find(ext, minSize, maxSize, nameRegex...)` method into crystal-clear OCP-compliant composable predicates!',
+          },
+          scene: {
+            hud: [
+              { label: 'TREE PATTERN', value: 'Composite (FsNode)', status: 'good' },
+              { label: 'QUERY PATTERN', value: 'Specification (AND/OR)', status: 'good' },
+              { label: 'CYCLE GUARD', value: 'Visited Set (Symlink)', status: 'info' },
+              { label: 'OCP EXTEND', value: '1 Class per New Rule', status: 'good' },
+            ],
+            nodes: [
+              { id: 'fs', type: 'uml', x: 160, y: 215, label: '«interface» FsNode', sublabel: 'Composite', tone: 'blue', umlFields: ['FileNode | DirectoryNode'], umlMethods: ['+ name(): String', '+ sizeBytes(): long'] },
+              { id: 'sp', type: 'uml', x: 545, y: 120, label: '«interface» FileSpec', sublabel: 'Specification', tone: 'green', umlFields: ['ExtSpec · MinSizeSpec'], umlMethods: ['+ matches(File): bool'] },
+              { id: 'comb', type: 'uml', x: 545, y: 315, label: 'AndSpec / OrSpec / Not', tone: 'purple', umlFields: ['- specs: List<FileSpec>'], umlMethods: ['+ matches(File): bool'] },
+            ],
+            edges: [
+              { from: 'fs', to: 'sp', label: 'DFS visit files', packetColor: 'green', speed: 1.7 },
+              { from: 'sp', to: 'comb', label: 'compose trees', packetColor: 'purple', speed: 1.8 },
+            ],
+            legend: [{ label: 'Composite + Specification search', tone: 'green' }],
+          },
+        },
+        {
+          shortLabel: 'Scale & Symlinks',
+          stage: 'TECHNIQUE',
+          title: 'Streaming Lazy Iterator, Symlink Cycle Prevention & Permissions',
+          body: [
+            'What if `/var` holds 10 Million files? Don’t return a giant `List<FileNode>` that OOMs RAM — return a lazy **`Iterator<FileNode>` / Stream** (BFS/DFS generator)! Track visited `inode` IDs in a `Set` to avoid infinite loops on circular symlinks, and wrap nodes with a **Permission Proxy** (`rwx`)!',
+          ],
+          callout: {
+            type: 'KEY IDEA',
+            text: 'Combining **Composite + Specification + Lazy Iterator + Symlink Visited Set** answers EVERY follow-up an Amazon L5/L6 or Microsoft L62 interviewer can throw at this problem!',
+          },
+          scene: {
+            hud: [
+              { label: '10M FILES RAM', value: 'O(Depth) Iterator', status: 'good' },
+              { label: 'SYMLINK LOOPS', value: 'Visited Inode Set', status: 'good' },
+              { label: 'PERMISSIONS', value: 'rwx Proxy Check', status: 'info' },
+              { label: 'CONCURRENCY', value: 'ReadWriteLock/Dir', status: 'good' },
+            ],
+            nodes: [
+              { id: 'd', type: 'hex', x: 145, y: 215, label: 'Lazy DFS Iterator', sublabel: 'Yields 1 File / Step', tone: 'green' },
+              { id: 'in', type: 'cache', x: 415, y: 215, label: 'Visited Inodes', sublabel: 'Blocks Symlink Loops', tone: 'amber' },
+              { id: 'out', type: 'users', x: 660, y: 215, label: 'Matched Stream', sublabel: 'O(1) Memory Output', tone: 'purple' },
+            ],
+            edges: [
+              { from: 'd', to: 'in', label: 'check inode', packetColor: 'amber', speed: 1.6 },
+              { from: 'in', to: 'out', label: 'yield match', packetColor: 'purple', speed: 1.6 },
+            ],
+            legend: [{ label: 'streaming cycle-safe traversal', tone: 'green' }],
+          },
+        },
+      ],
+      deepDive: {
+        codeTitle: 'Composite FileSystem + Specification Pattern `find()` (Java & Python)',
+        codeSnippets: {
+          java: `interface FileSpec {
+    boolean matches(FileNode file);
+    default FileSpec and(FileSpec other) { return f -> this.matches(f) && other.matches(f); }
+    default FileSpec or(FileSpec other)  { return f -> this.matches(f) || other.matches(f); }
+    default FileSpec not()               { return f -> !this.matches(f); }
+}
+
+record MinSizeSpec(long minBytes) implements FileSpec {
+    public boolean matches(FileNode f) { return f.sizeBytes() >= minBytes; }
+}
+record ExtensionSpec(String ext) implements FileSpec {
+    public boolean matches(FileNode f) { return f.name().endsWith(ext); }
+}
+
+// Usage — infinitely extensible without modifying DirectoryNode!
+FileSpec query = new ExtensionSpec(".log").and(new MinSizeSpec(5_000_000));
+List<FileNode> results = FileFinder.find(rootDir, query);`,
+          python: `from abc import ABC, abstractmethod
+
+class FileSpec(ABC):
+    @abstractmethod
+    def matches(self, f) -> bool: ...
+    def __and__(self, other): return AndSpec(self, other)
+    def __or__(self, other):  return OrSpec(self, other)
+
+class AndSpec(FileSpec):
+    def __init__(self, a, b): self.a, self.b = a, b
+    def matches(self, f): return self.a.matches(f) and self.b.matches(f)
+
+class MinSizeSpec(FileSpec):
+    def __init__(self, min_bytes: int): self.min_bytes = min_bytes
+    def matches(self, f): return f.size >= self.min_bytes
+
+class ExtSpec(FileSpec):
+    def __init__(self, ext: str): self.ext = ext
+    def matches(self, f): return f.name.endswith(self.ext)
+
+# Lazy generator find() — O(depth) RAM even on 10M files!
+def find(directory, spec: FileSpec):
+    for node in directory.children.values():
+        if node.is_dir: yield from find(node, spec)
+        elif spec.matches(node): yield node`,
         },
       },
     },
