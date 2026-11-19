@@ -484,7 +484,7 @@ export const MODULE_14_ADVANCED_HLD = {
               { from: 'gw', to: 'seq', label: 'validated order', packetColor: 'blue', speed: 1.5 },
               { from: 'seq', to: 'me', label: 'ring buffer', packetColor: 'green', speed: 1.3, packetCount: 3 },
               { from: 'me', to: 'md', label: 'L2 book / trades', packetColor: 'purple', speed: 1.4 },
-              { from: 'seq', to: 'bk', label: 'same input stream', packetColor: 'amber', dashed: true, speed: 1.6 },
+              { from: 'seq', to: 'bk', label: 'same input stream', packetColor: 'amber', dashed: true, curve: 70, speed: 1.6 },
             ],
             legend: [{ label: 'lock-free deterministic matching loop', tone: 'green' }],
           },

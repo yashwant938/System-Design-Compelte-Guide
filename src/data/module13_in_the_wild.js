@@ -152,9 +152,9 @@ export const MODULE_13_IN_THE_WILD = {
               { id: 'c1', type: 'hex', x: 115, y: 110, label: 'Checkout #1', sublabel: 'SKIP LOCKED', tone: 'green' },
               { id: 'c2', type: 'hex', x: 115, y: 215, label: 'Checkout #2', sublabel: 'SKIP LOCKED', tone: 'blue' },
               { id: 'c3', type: 'hex', x: 115, y: 320, label: 'Checkout #3', sublabel: 'SKIP LOCKED', tone: 'purple' },
-              { id: 'u1', type: 'db', x: 525, y: 110, label: 'Unit Row #1', sublabel: 'Locked by #1 ✓', tone: 'green', badge: 'zero wait', badgeTone: 'green' },
-              { id: 'u2', type: 'db', x: 525, y: 215, label: 'Unit Row #2', sublabel: 'Skipped #1 → #2 ✓', tone: 'blue', badge: 'parallel!', badgeTone: 'blue' },
-              { id: 'u3', type: 'db', x: 525, y: 320, label: 'Unit Row #3', sublabel: 'Skipped #1,#2 → #3 ✓', tone: 'purple', badge: 'parallel!', badgeTone: 'purple' },
+              { id: 'u1', type: 'db', x: 525, y: 105, label: 'Unit Row #1', sublabel: 'Locked by #1 ✓', tone: 'green', callout: 'zero wait' },
+              { id: 'u2', type: 'db', x: 525, y: 220, label: 'Unit Row #2', sublabel: 'Skipped #1 → #2 ✓', tone: 'blue', callout: 'parallel!' },
+              { id: 'u3', type: 'db', x: 525, y: 335, label: 'Unit Row #3', sublabel: 'Skipped #1,#2 → #3 ✓', tone: 'purple', callout: 'parallel!' },
             ],
             edges: [
               { from: 'c1', to: 'u1', label: 'claim row 1', packetColor: 'green', speed: 1.5 },

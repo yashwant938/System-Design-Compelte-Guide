@@ -168,10 +168,10 @@ export default function LearnView({
                   ) : null}
                 </div>
                 <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-ink dark:text-paper-ink">
-                  {lesson.title}
+                  {renderRichText(lesson.title)}
                 </h1>
                 <p className="text-xs sm:text-[13px] font-mono text-ink-muted dark:text-paper-ink/75 max-w-2xl">
-                  {lesson.subtitle}
+                  {renderRichText(lesson.subtitle)}
                 </p>
               </div>
 
@@ -416,7 +416,7 @@ export default function LearnView({
             </div>
 
             <h2 className="font-display text-xl sm:text-2xl font-bold leading-snug text-ink dark:text-paper-ink">
-              {currentStep.title}
+              {renderRichText(currentStep.title)}
             </h2>
 
             {/* Body Paragraphs */}
@@ -462,7 +462,7 @@ export default function LearnView({
                         >
                           {ch.slice(0, 1)}
                         </span>
-                        <span className="text-ink/90 dark:text-paper-ink/85">{ch.slice(1).trim()}</span>
+                        <span className="text-ink/90 dark:text-paper-ink/85">{renderRichText(ch.slice(1).trim())}</span>
                       </li>
                     );
                   })}
@@ -562,7 +562,7 @@ export default function LearnView({
                           : 'text-ink-muted dark:text-paper-ink/70'
                       }
                     >
-                      {obj}
+                      {renderRichText(obj)}
                     </span>
                   </li>
                 );

@@ -25,7 +25,7 @@ export default function CodeBlock({ snippets, title }) {
     <div className="rounded-xl border border-ink/20 dark:border-ink-border bg-[#1B1917] text-[#F2EDE4] overflow-hidden">
       {title && (
         <div className="px-3.5 py-1.5 border-b border-white/10 bg-[#110F0D] text-[11px] font-mono uppercase tracking-wider text-amber-300/90 truncate">
-          {title}
+          {String(title).replace(/`/g, '')}
         </div>
       )}
       <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/10 bg-[#141210]">
