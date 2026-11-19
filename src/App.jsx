@@ -4,7 +4,9 @@ import Navbar from './components/Navbar.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import LearnView from './components/LearnView.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
+import { GofPatternsExplorerWidget, SolidComparatorWidget } from './components/GofPatternsExplorer.jsx';
 import { CURRICULUM_MODULES, findLessonById, getAllLessons } from './data/curriculum.js';
+import { GOF_PATTERNS_23 } from './data/gofPatterns23.js';
 import { loadProgress, saveProgress } from './utils/storage.js';
 
 function parseHash() {
@@ -122,7 +124,7 @@ export default function App() {
   }, []);
 
   const searchItems = useMemo(() => {
-    return allLessons.map(({ lesson, moduleMeta }) => ({
+    const lessonItems = allLessons.map(({ lesson, moduleMeta }) => ({
       id: `lesson:${lesson.id}`,
       kind: 'lesson',
       lessonId: lesson.id,
@@ -131,6 +133,18 @@ export default function App() {
       category: `${moduleMeta.number}. ${moduleMeta.title} (${moduleMeta.track.toUpperCase()})`,
       tags: [...(lesson.tags || []), ...(lesson.companies || [])],
     }));
+
+    const patternItems = GOF_PATTERNS_23.map((p) => ({
+      id: `pattern:${p.id}`,
+      kind: 'lesson',
+      lessonId: 'lld-gof-patterns',
+      title: `${p.name} Pattern (${p.category})`,
+      subtitle: p.intent,
+      category: 'GoF Design Pattern · LLD',
+      tags: [p.category, p.realWorld],
+    }));
+
+    return [...lessonItems, ...patternItems];
   }, [allLessons]);
 
   return (
@@ -175,6 +189,13 @@ export default function App() {
               isBookmarked={progress.bookmarkedIds.includes(activeEntry.lesson.id)}
               onToggleBookmark={handleToggleBookmark}
               isDark={isDark}
+              extraBottomSlot={
+                activeEntry.lesson.widget === 'solid-comparator' ? (
+                  <SolidComparatorWidget />
+                ) : activeEntry.lesson.widget === 'gof-explorer' ? (
+                  <GofPatternsExplorerWidget />
+                ) : null
+              }
             />
           )}
 
