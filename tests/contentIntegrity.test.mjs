@@ -2,23 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CURRICULUM_MODULES, getAllLessons } from '../src/data/curriculum.js';
 import { GOF_PATTERNS_23, SOLID_PRINCIPLES } from '../src/data/gofPatterns23.js';
+import {
+  COMPANY_RUBRICS,
+  DECISION_MATRICES,
+  LATENCY_LADDER,
+  QUIZ_BANK,
+  ROADMAP_60_DAYS,
+} from '../src/data/practiceAndCheatsheets.js';
 
-test('All 23 GoF design patterns and 5 SOLID principles are present and complete', () => {
-  assert.equal(SOLID_PRINCIPLES.length, 5, 'Must include all 5 SOLID principles');
-  assert.equal(GOF_PATTERNS_23.length, 23, 'Must include all 23 Gang of Four design patterns');
-  const creational = GOF_PATTERNS_23.filter((p) => p.category === 'Creational').length;
-  const structural = GOF_PATTERNS_23.filter((p) => p.category === 'Structural').length;
-  const behavioral = GOF_PATTERNS_23.filter((p) => p.category === 'Behavioral').length;
-  assert.equal(creational, 5);
-  assert.equal(structural, 7);
-  assert.equal(behavioral, 11);
-});
-
-test('Every curriculum module and lesson has unique IDs and valid step scenes', () => {
+test('Complete 12-module HLD + LLD curriculum has unique IDs and valid step scenes', () => {
   const seenModIds = new Set();
   const seenLessonIds = new Set();
 
-  assert.ok(CURRICULUM_MODULES.length >= 2, 'Expected at least 2 modules');
+  assert.equal(CURRICULUM_MODULES.length, 12, 'Expected all 12 HLD + LLD modules');
 
   for (const mod of CURRICULUM_MODULES) {
     assert.ok(mod.id && !seenModIds.has(mod.id), `Duplicate or missing module id: ${mod.id}`);
@@ -31,7 +27,7 @@ test('Every curriculum module and lesson has unique IDs and valid step scenes', 
       seenLessonIds.add(lesson.id);
       assert.ok(lesson.title && lesson.subtitle, `Lesson ${lesson.id} missing title/subtitle`);
       assert.ok(Array.isArray(lesson.objectives) && lesson.objectives.length >= 2, `Lesson ${lesson.id} missing objectives`);
-      assert.ok(Array.isArray(lesson.steps) && lesson.steps.length >= 2, `Lesson ${lesson.id} must have at least 2 steps`);
+      assert.ok(Array.isArray(lesson.steps) && lesson.steps.length >= 2, `Lesson ${lesson.id} must have >= 2 steps`);
 
       for (const [sIdx, step] of lesson.steps.entries()) {
         assert.ok(step.title, `Lesson ${lesson.id} step ${sIdx + 1} missing title`);
@@ -48,5 +44,29 @@ test('Every curriculum module and lesson has unique IDs and valid step scenes', 
   }
 
   const all = getAllLessons();
-  assert.equal(all.length, seenLessonIds.size);
+  assert.equal(all.length, 67, 'Expected all 67 complete interactive HLD + LLD lessons');
+});
+
+test('All 23 GoF design patterns and 5 SOLID principles are complete', () => {
+  assert.equal(SOLID_PRINCIPLES.length, 5);
+  assert.equal(GOF_PATTERNS_23.length, 23);
+  assert.equal(GOF_PATTERNS_23.filter((p) => p.category === 'Creational').length, 5);
+  assert.equal(GOF_PATTERNS_23.filter((p) => p.category === 'Structural').length, 7);
+  assert.equal(GOF_PATTERNS_23.filter((p) => p.category === 'Behavioral').length, 11);
+});
+
+test('50-question quiz bank, 4 company rubrics, 60-day roadmap & cheatsheets are valid', () => {
+  assert.equal(QUIZ_BANK.length, 50, 'Expected 50 curated interview questions');
+  const seenQ = new Set();
+  for (const q of QUIZ_BANK) {
+    assert.ok(q.id && !seenQ.has(q.id), `Duplicate quiz id: ${q.id}`);
+    seenQ.add(q.id);
+    assert.equal(q.options.length, 4, `Quiz ${q.id} must have 4 options`);
+    assert.ok(q.answer >= 0 && q.answer < 4, `Quiz ${q.id} answer out of bounds`);
+    assert.ok(q.explanation && q.explanation.length > 20, `Quiz ${q.id} missing explanation`);
+  }
+  assert.equal(COMPANY_RUBRICS.length, 4);
+  assert.equal(ROADMAP_60_DAYS.length, 16);
+  assert.ok(LATENCY_LADDER.length >= 10);
+  assert.ok(DECISION_MATRICES.length >= 3);
 });

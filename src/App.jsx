@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, FlaskConical, Layers, Target } from 'lucide-react';
 import Navbar from './components/Navbar.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import LearnView from './components/LearnView.jsx';
+import DesignLabView from './components/DesignLabView.jsx';
+import PracticeView from './components/PracticeView.jsx';
+import CheatsheetsView from './components/CheatsheetsView.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import { GofPatternsExplorerWidget, SolidComparatorWidget } from './components/GofPatternsExplorer.jsx';
 import { CURRICULUM_MODULES, findLessonById, getAllLessons } from './data/curriculum.js';
@@ -11,14 +13,14 @@ import { loadProgress, saveProgress } from './utils/storage.js';
 
 function parseHash() {
   const raw = window.location.hash.replace(/^#\/?/, '').trim();
-  if (!raw) return { tab: 'learn', lessonId: 'cdn', step: 1 };
+  if (!raw) return { tab: 'learn', lessonId: 'cdn', step: 1, subId: null };
   const parts = raw.split('/').filter(Boolean);
   if (parts[0] === 'lab' || parts[0] === 'practice' || parts[0] === 'cheatsheets') {
     return { tab: parts[0], lessonId: 'cdn', step: 1, subId: parts[1] || null };
   }
   const lessonId = parts[0];
   const step = Math.max(1, parseInt(parts[1] || '1', 10) || 1);
-  return { tab: 'learn', lessonId, step };
+  return { tab: 'learn', lessonId, step, subId: null };
 }
 
 export default function App() {
@@ -30,26 +32,22 @@ export default function App() {
 
   const isDark = progress.theme === 'dark';
 
-  // Sync dark mode class on <html>
   useEffect(() => {
     const root = document.documentElement;
     if (isDark) root.classList.add('dark');
     else root.classList.remove('dark');
   }, [isDark]);
 
-  // Persist progress to localStorage
   useEffect(() => {
     saveProgress(progress);
   }, [progress]);
 
-  // Sync with browser hash changes (#/<slug>/<step>)
   useEffect(() => {
     const onHashChange = () => setRoute(parseHash());
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  // Global Ctrl+K / Cmd+K search shortcut
   useEffect(() => {
     const onKey = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
@@ -68,19 +66,24 @@ export default function App() {
 
   const navigateLesson = useCallback((lessonId, step = 1) => {
     window.location.hash = `#/${lessonId}/${step}`;
-    setRoute({ tab: 'learn', lessonId, step });
+    setRoute({ tab: 'learn', lessonId, step, subId: null });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  const navigateTab = useCallback((tab, subId = null) => {
-    if (tab === 'learn') {
-      const targetId = activeEntry?.lesson?.id || 'cdn';
-      window.location.hash = `#/${targetId}/${route.step || 1}`;
-      setRoute({ tab: 'learn', lessonId: targetId, step: route.step || 1 });
-    } else {
-      window.location.hash = subId ? `#/${tab}/${subId}` : `#/${tab}`;
-      setRoute((prev) => ({ ...prev, tab, subId }));
-    }
-  }, [activeEntry, route.step]);
+  const navigateTab = useCallback(
+    (tab, subId = null) => {
+      if (tab === 'learn') {
+        const targetId = activeEntry?.lesson?.id || 'cdn';
+        window.location.hash = `#/${targetId}/${route.step || 1}`;
+        setRoute({ tab: 'learn', lessonId: targetId, step: route.step || 1, subId: null });
+      } else {
+        window.location.hash = subId ? `#/${tab}/${subId}` : `#/${tab}`;
+        setRoute((prev) => ({ ...prev, tab, subId }));
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    [activeEntry, route.step]
+  );
 
   const handleToggleComplete = useCallback((lessonId, forceValue) => {
     setProgress((prev) => {
@@ -106,6 +109,25 @@ export default function App() {
           : [...prev.bookmarkedIds, lessonId],
       };
     });
+  }, []);
+
+  const handleToggleRoadmap = useCallback((milestoneId) => {
+    setProgress((prev) => {
+      const exists = prev.roadmapChecked.includes(milestoneId);
+      return {
+        ...prev,
+        roadmapChecked: exists
+          ? prev.roadmapChecked.filter((id) => id !== milestoneId)
+          : [...prev.roadmapChecked, milestoneId],
+      };
+    });
+  }, []);
+
+  const handleSaveQuizScore = useCallback((record) => {
+    setProgress((prev) => ({
+      ...prev,
+      quizHistory: [record, ...(prev.quizHistory || [])].slice(0, 10),
+    }));
   }, []);
 
   const handleToggleTheme = useCallback(() => {
@@ -144,7 +166,18 @@ export default function App() {
       tags: [p.category, p.realWorld],
     }));
 
-    return [...lessonItems, ...patternItems];
+    const labItems = [
+      { id: 'lab:hashing', kind: 'lab', subId: 'hashing', title: 'Consistent Hashing Ring Simulator', subtitle: 'Interactive vNodes & remapping % comparison', category: 'Design Lab' },
+      { id: 'lab:ratelimiter', kind: 'lab', subId: 'ratelimiter', title: 'Rate Limiter Arena', subtitle: 'Token Bucket vs Fixed vs Sliding Window burst test', category: 'Design Lab' },
+      { id: 'lab:cache', kind: 'lab', subId: 'cache', title: 'LRU Eviction & Cache Stampede Lab', subtitle: 'O(1) Doubly-Linked List + Single-Flight coalescing', category: 'Design Lab' },
+      { id: 'lab:quorum', kind: 'lab', subId: 'quorum', title: 'Quorum (W+R>N) & 5-Node Raft Lab', subtitle: 'Kill nodes and test Raft majority elections', category: 'Design Lab' },
+      { id: 'lab:capacity', kind: 'lab', subId: 'capacity', title: 'Back-of-the-Envelope Napkin Math Estimator', subtitle: 'QPS, 5-year TB, Gbps, Cache RAM & Shards', category: 'Design Lab' },
+      { id: 'lab:lld', kind: 'lab', subId: 'lld', title: 'LLD Seat Lock Race & Elevator LOOK Lab', subtitle: 'BookMyShow concurrency + 3-car LOOK dispatcher', category: 'Design Lab' },
+      { id: 'practice:exam', kind: 'practice', title: '50-Question Staff HLD & LLD Mock Exam', subtitle: 'Microsoft, Google, Amazon & Meta rubrics + 60-Day Plan', category: 'Practice War Room' },
+      { id: 'cheatsheets:all', kind: 'cheatsheet', title: 'Visual Cheatsheets & Decision Matrices', subtitle: 'Latency ladder, Powers of 2, 45m blueprints & 23 GoF grid', category: 'Cheatsheets' },
+    ];
+
+    return [...lessonItems, ...labItems, ...patternItems];
   }, [allLessons]);
 
   return (
@@ -199,26 +232,19 @@ export default function App() {
             />
           )}
 
-          {route.tab !== 'learn' && (
-            <div className="mx-auto max-w-4xl px-4 py-12">
-              <div className="notebook-card p-8 text-center space-y-4">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-ink/25 bg-sage/50 dark:bg-sage-dark">
-                  {route.tab === 'lab' && <FlaskConical className="h-6 w-6" />}
-                  {route.tab === 'practice' && <Target className="h-6 w-6" />}
-                  {route.tab === 'cheatsheets' && <Layers className="h-6 w-6" />}
-                </div>
-                <h2 className="font-display text-2xl font-bold capitalize">
-                  {route.tab === 'lab' ? 'Interactive Design Lab' : route.tab === 'practice' ? 'Interview Practice Arena' : 'Visual Cheatsheets'}
-                </h2>
-                <p className="text-xs font-mono text-ink-muted dark:text-paper-ink/75 max-w-lg mx-auto">
-                  PR #1 establishes the Isometric Stage Engine and Modules 01–02. Interactive Simulators, 55-Question Mock Exam, Company Rubrics, and Visual Cheatsheets are being added cleanly in PR #6!
-                </p>
-                <button type="button" onClick={() => navigateTab('learn')} className="notebook-btn-primary">
-                  Continue Interactive Course
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
+          {route.tab === 'lab' && <DesignLabView key={route.subId || 'default'} initialLabId={route.subId} />}
+
+          {route.tab === 'practice' && (
+            <PracticeView
+              roadmapChecked={progress.roadmapChecked}
+              onToggleRoadmap={handleToggleRoadmap}
+              onSaveQuizScore={handleSaveQuizScore}
+              quizHistory={progress.quizHistory}
+            />
+          )}
+
+          {route.tab === 'cheatsheets' && (
+            <CheatsheetsView onJumpToLesson={(id) => navigateLesson(id, 1)} />
           )}
         </main>
       </div>
@@ -229,6 +255,9 @@ export default function App() {
         items={searchItems}
         onSelect={(item) => {
           if (item.kind === 'lesson') navigateLesson(item.lessonId, 1);
+          else if (item.kind === 'lab') navigateTab('lab', item.subId);
+          else if (item.kind === 'practice') navigateTab('practice');
+          else if (item.kind === 'cheatsheet') navigateTab('cheatsheets');
         }}
       />
     </div>
