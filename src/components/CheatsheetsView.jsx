@@ -5,6 +5,7 @@ import {
   DECISION_MATRICES,
   HTTP_AND_POWERS,
   LATENCY_LADDER,
+  OSI_AND_STORAGE_MATRIX,
 } from '../data/practiceAndCheatsheets.js';
 import { GOF_PATTERNS_23 } from '../data/gofPatterns23.js';
 import { renderRichText } from '../utils/richText.jsx';
@@ -202,6 +203,57 @@ export default function CheatsheetsView({ onJumpToLesson }) {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* OSI Stack & Storage Comparison Quick Reference */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="notebook-card p-5 space-y-3">
+          <h2 className="font-display text-lg font-bold">OSI Model → System Design Map</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs font-mono border-collapse">
+              <thead>
+                <tr className="border-b border-ink/20 dark:border-ink-border text-[10.5px] uppercase text-ink-muted">
+                  <th className="py-2 pr-3">Layer</th>
+                  <th className="py-2 pr-3">Protocols</th>
+                  <th className="py-2">Where You Use It</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink/10 dark:divide-ink-border">
+                {OSI_AND_STORAGE_MATRIX.osiLayers.map(([layer, proto, use]) => (
+                  <tr key={layer}>
+                    <td className="py-2 pr-3 font-bold whitespace-nowrap">{layer}</td>
+                    <td className="py-2 pr-3 text-sage-strong dark:text-[#A9E49E]">{proto}</td>
+                    <td className="py-2 text-ink-muted dark:text-paper-ink/75">{use}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="notebook-card p-5 space-y-3">
+          <h2 className="font-display text-lg font-bold">Block vs File vs Object Storage</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs font-mono border-collapse">
+              <thead>
+                <tr className="border-b border-ink/20 dark:border-ink-border text-[10.5px] uppercase text-ink-muted">
+                  <th className="py-2 pr-3">Storage Type</th>
+                  <th className="py-2 pr-3">Latency</th>
+                  <th className="py-2">Best Workload</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink/10 dark:divide-ink-border">
+                {OSI_AND_STORAGE_MATRIX.storageCompare.map(([type, lat, _share, best]) => (
+                  <tr key={type}>
+                    <td className="py-2.5 pr-3 font-bold whitespace-nowrap">{type}</td>
+                    <td className="py-2.5 pr-3 text-lavender-strong dark:text-[#C4B5FD] whitespace-nowrap">{lat}</td>
+                    <td className="py-2.5 text-ink-muted dark:text-paper-ink/75">{best}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       {/* All 23 GoF Patterns Quick-Scan Grid */}

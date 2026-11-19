@@ -2,25 +2,25 @@
 
 An all-in-one, interactive visual study platform covering **High-Level Design (HLD)**, **Real-World "In The Wild" Production Engineering Deep Dives**, and **Low-Level Design (LLD) / Machine Coding** for **Microsoft (L60–L65)**, **Google (L4–L6)**, **Amazon (SDE2/SDE3)**, and **Meta (E4–E6)** interviews.
 
-Synthesizes the animated step-by-step visual clarity of [designed-to-scale](https://designed-to-scale.vercel.app/#/cdn/1), the architectural breadth of [ByteByteGo `system-design-101`](https://github.com/ByteByteGoHq/system-design-101), and the real-world production breakdowns of [Hello Interview](https://www.hellointerview.com/learn/system-design/in-the-wild/shopify-inventory-reservations) — all inside **one self-contained interactive website** with zero "coming soon" placeholders.
+Synthesizes the animated step-by-step visual clarity of [designed-to-scale](https://designed-to-scale.vercel.app/#/cdn/1), the architectural breadth of [ByteByteGo `system-design-101`](https://github.com/ByteByteGoHq/system-design-101), the fundamentals depth of [karanpratapsingh/system-design](https://github.com/karanpratapsingh/system-design), and the real-world production breakdowns of [Hello Interview](https://www.hellointerview.com/learn/system-design/in-the-wild/shopify-inventory-reservations) — all inside **one self-contained interactive website** with zero "coming soon" placeholders.
 
 ---
 
-## Complete Curriculum (14 Modules · 88 Interactive Lessons)
+## Complete Curriculum (14 Modules · 100 Interactive Lessons)
 
-### 1. Interactive Step-by-Step Course (`Learn` — 14 Modules · 88 Animated Lessons)
+### 1. Interactive Step-by-Step Course (`Learn` — 14 Modules · 100 Animated Lessons)
 Every lesson features a **2.5D Isometric SVG Architecture Stage** with live telemetry KPIs, animated request/response/event packets, `Replay (R)` / `Pause (Space)` controls, keyboard navigation (`← →`), hash deep-links (`#/<lesson>/<step>`), auto-checking `YOU'LL LEARN` objectives, and a **Staff-Level Deep Engineering Vault** (Trade-off Matrices, Capacity Math, Failure Modes & Production Code):
 
 | # | Module | Track | Lessons | Key Highlights |
 | :--- | :--- | :--- | :---: | :--- |
-| **01** | **Foundations** | HLD | 3 | DNS/TCP/TLS 1.3/HTTP3 QUIC, Tail Latency (p99) & Hedged RPCs, Napkin Math |
-| **02** | **Scaling** | HLD | 5 | Vertical vs Horizontal, L4/L7 Load Balancing (P2C), Stateless, Caching (Stampede/Bloom), **Content Delivery (CDN)** |
-| **03** | **Data & Storage** | HLD | 11 | SQL vs NoSQL, B+ Tree / Spatial Indexes, B-Tree vs LSM-Tree, Replication & Quorum, Sharding, Consistent Hashing, Snowflake IDs, CAP & PACELC, Raft Consensus & Fencing Tokens, MVCC & Isolation, Object Storage |
+| **01** | **Foundations** | HLD | 4 | DNS/TCP/TLS 1.3/HTTP3 QUIC, **OSI 7-Layer + IPv4/IPv6/NAT + TCP vs UDP**, Tail Latency (p99) & Hedged RPCs, Napkin Math |
+| **02** | **Scaling** | HLD | 7 | Vertical vs Horizontal, L4/L7 Load Balancing (P2C), **Forward vs Reverse Proxy & BFF**, **Clustering & STONITH Fencing**, Stateless, Caching (Stampede/Bloom), **Content Delivery (CDN)** |
+| **03** | **Data & Storage** | HLD | 16 | SQL vs NoSQL, **Block/File/Object & RAID/Erasure Coding**, **Normalization (1NF–BCNF) & DB Federation**, **ACID vs BASE**, B+ Tree / Spatial Indexes (**Geohash Edge Bug / Quadtree / H3**), B-Tree vs LSM-Tree, **Probabilistic Structures (Bloom, HyperLogLog 12KB, SkipList)**, Replication & Quorum, Sharding, Consistent Hashing, Snowflake IDs, CAP & PACELC, Raft Consensus & Fencing Tokens, MVCC & Isolation, Object Storage |
 | **04** | **Communication** | HLD | 4 | REST/gRPC/GraphQL/Webhooks, Message Queues & DLQ, Kafka Internals (ISR/Zero-Copy), Polling/SSE/WebSockets/WebRTC |
 | **05** | **Reliability** | HLD | 4 | Active-Active DR & Cell Architecture, 5 Rate Limiting Algorithms (Redis Lua), Circuit Breakers & Full Jitter, OpenTelemetry & SLO Error Budgets |
-| **06** | **Architecture** | HLD | 4 | Modular Monolith vs Microservices & Strangler Fig, Service Mesh (Envoy mTLS), Sagas & Transactional Outbox CDC, Flink/Kappa Stream Processing |
-| **07** | **Security & Enterprise** | HLD | 3 | OAuth 2.0 + PKCE / OIDC / JWT Rotation, RBAC / ABAC / Google Zanzibar ReBAC, KMS Envelope Encryption & Multi-Tenant Isolation (Microsoft L62/L63) |
-| **08** | **Shipping & DevOps** | HLD | 2 | Testing Pyramid, Shadow Traffic & Chaos Engineering; CI/CD, Docker/K8s, Canary & Expand-Contract DB Migrations |
+| **06** | **Architecture** | HLD | 6 | Modular Monolith vs Microservices & Strangler Fig, **N-Tier & ESB vs Event-Driven Architecture (EDA)**, **CQRS & Event Sourcing (Snapshots + Upcasting)**, Service Mesh (Envoy mTLS), Sagas & Transactional Outbox CDC, Flink/Kappa Stream Processing |
+| **07** | **Security & Enterprise** | HLD | 4 | OAuth 2.0 + PKCE / OIDC / JWT Rotation, **SSL/TLS 1.3 Handshake (ECDHE/AES-GCM), PKI & mTLS**, RBAC / ABAC / Google Zanzibar ReBAC, KMS Envelope Encryption & Multi-Tenant Isolation (Microsoft L62/L63) |
+| **08** | **Shipping & DevOps** | HLD | 3 | Testing Pyramid, Shadow Traffic & Chaos Engineering; **VMs vs Docker Containers vs Firecracker MicroVMs vs Serverless**; CI/CD, K8s, Canary & Expand-Contract DB Migrations |
 | **09** | **Fintech, AI & Real-World** | HLD | 4 | Payment Systems, UPI & Immutable Double-Entry Ledger; Hybrid RAG + vLLM PagedAttention; Discord ScyllaDB & Hotstar 50M; Prime Video -90% Monolith, Netflix Open Connect & Stack Overflow |
 | **10** | **Whole Systems (HLD)** | HLD | 13 | HLD/LLD Two Zoom Levels + **12 Core Systems**: TinyURL, Twitter/X News Feed, WhatsApp/Teams Chat, YouTube/Netflix, Uber H3 Dispatch, Google Autocomplete & Web Crawler, Google Docs/Loop (OT/CRDT), BookMyShow Flash Sale, DynamoDB KV Store, Dropbox/OneDrive, Distributed Rate Limiter, Datadog/Azure Monitor & Priority Notifications |
 | **11** | **Advanced HLD Designs** | HLD | 10 | **Hello Interview & Staff FAANG Classics**: Ad Click Aggregator (Flink/ClickHouse/Billing), LeetCode Code Judge (Firecracker microVMs), Top-K Heavy Hitters (Count-Min Sketch), FB Live Comments (2-tier SSE Fanout Tree), Real-Time Post Search (Doc-Partitioned Inverted Index), High-Frequency Stock Exchange (LMAX Single-Thread Matching Engine), Airbnb/Hotel Booking (GiST Exclusion), DoorDash Food Delivery (3-Sided Saga + VRP), Real-Time Online Auction (Redis Lua + Soft-Close), Microsoft Teams / Zoom Video Conferencing (Cascaded SFU + Simulcast) |
@@ -37,7 +37,7 @@ Every lesson features a **2.5D Isometric SVG Architecture Stage** with live tele
 6. **LLD Concurrency Lab** — Live BookMyShow Seat A5 dual-user race simulator (Lock ON vs OFF + 10s TTL) + 3-Car Elevator LOOK Dispatcher.
 
 ### 3. Interview War Room (`Practice`)
-- **75-Question Staff-Level HLD, In-The-Wild & LLD Mock Exam** with domain filters, instant explanations, and accuracy breakdown.
+- **100-Question Staff-Level HLD, In-The-Wild & LLD Mock Exam** with domain filters, instant explanations, and accuracy breakdown.
 - **Big Tech Hiring Rubrics**: Microsoft (L60–L65), Google (L4–L6), Amazon (L5–L6), and Meta (E4–E6).
 - **60-Day Study Roadmap**: 16 checkable milestones persisted automatically in `localStorage`.
 
