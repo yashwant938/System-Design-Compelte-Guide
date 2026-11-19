@@ -1,6 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CURRICULUM_MODULES, getAllLessons } from '../src/data/curriculum.js';
+import { GOF_PATTERNS_23, SOLID_PRINCIPLES } from '../src/data/gofPatterns23.js';
+
+test('All 23 GoF design patterns and 5 SOLID principles are present and complete', () => {
+  assert.equal(SOLID_PRINCIPLES.length, 5, 'Must include all 5 SOLID principles');
+  assert.equal(GOF_PATTERNS_23.length, 23, 'Must include all 23 Gang of Four design patterns');
+  const creational = GOF_PATTERNS_23.filter((p) => p.category === 'Creational').length;
+  const structural = GOF_PATTERNS_23.filter((p) => p.category === 'Structural').length;
+  const behavioral = GOF_PATTERNS_23.filter((p) => p.category === 'Behavioral').length;
+  assert.equal(creational, 5);
+  assert.equal(structural, 7);
+  assert.equal(behavioral, 11);
+});
 
 test('Every curriculum module and lesson has unique IDs and valid step scenes', () => {
   const seenModIds = new Set();
