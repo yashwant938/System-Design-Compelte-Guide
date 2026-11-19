@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import IsometricStage from './IsometricStage.jsx';
 import CodeBlock from './CodeBlock.jsx';
+import { renderRichText } from '../utils/richText.jsx';
 
 const STAGE_BADGE_CLASS = {
   PROBLEM: 'bg-coral text-coral-strong border-coral-strong/40 dark:bg-coral-dark dark:text-[#FCA5A5]',
@@ -51,21 +52,6 @@ const CALLOUT_STYLE = {
     icon: Compass,
   },
 };
-
-function renderHighlightedText(text) {
-  // Supports **highlighted term** syntax for crisp sage-underlined concepts
-  const parts = String(text || '').split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return (
-        <span key={i} className="term-highlight">
-          {part.slice(2, -2)}
-        </span>
-      );
-    }
-    return <React.Fragment key={i}>{part}</React.Fragment>;
-  });
-}
 
 export default function LearnView({
   lesson,
@@ -240,7 +226,7 @@ export default function LearnView({
             </div>
 
             <div className="overflow-x-auto pb-1">
-              <div className="flex items-start min-w-max gap-1">
+              <div className="flex items-start w-full justify-between gap-1">
                 {steps.map((st, idx) => {
                   const isCurrent = idx === safeStepIdx;
                   const isVisited = idx < safeStepIdx;
@@ -249,12 +235,12 @@ export default function LearnView({
                       <button
                         type="button"
                         onClick={() => onChangeStep(idx + 1)}
-                        className="group flex flex-col items-center w-[76px] sm:w-[86px] shrink-0 text-center"
+                        className="group flex flex-col items-center flex-1 min-w-[60px] text-center"
                       >
                         <div
                           className={`flex h-8 w-8 items-center justify-center rounded-full border-[1.5px] font-mono text-xs font-bold transition-all ${
                             isCurrent
-                              ? 'border-ink bg-sage text-ink scale-110 shadow-tactile-sm dark:border-sage dark:bg-[#2F5D34] dark:text-[#E8F8E5]'
+                              ? 'border-ink bg-sage text-ink scale-105 shadow-tactile-sm dark:border-sage dark:bg-[#2F5D34] dark:text-[#E8F8E5]'
                               : isVisited
                               ? 'border-sage-strong/70 bg-sage/35 text-sage-text dark:border-sage/40 dark:bg-sage-dark dark:text-[#A9E49E]'
                               : 'border-ink/30 bg-paper text-ink-muted group-hover:border-ink/60 dark:border-ink-border dark:bg-ink-elevated dark:text-paper-ink/65'
@@ -263,7 +249,7 @@ export default function LearnView({
                           {isVisited ? <Check className="h-3.5 w-3.5" /> : idx + 1}
                         </div>
                         <span
-                          className={`mt-1.5 text-[10.5px] font-mono leading-tight line-clamp-2 ${
+                          className={`mt-1.5 text-[10px] font-mono leading-tight line-clamp-2 ${
                             isCurrent
                               ? 'font-bold text-ink dark:text-paper-ink'
                               : 'text-ink-muted dark:text-paper-ink/60'
@@ -274,7 +260,7 @@ export default function LearnView({
                       </button>
                       {idx < steps.length - 1 && (
                         <div
-                          className={`mt-4 h-[1.5px] w-4 sm:w-6 shrink-0 ${
+                          className={`mt-4 h-[1.5px] flex-shrink w-3 sm:w-5 ${
                             idx < safeStepIdx ? 'bg-sage-strong' : 'bg-ink/20 dark:bg-ink-border'
                           }`}
                         />
@@ -436,7 +422,7 @@ export default function LearnView({
             {/* Body Paragraphs */}
             <div className="space-y-3 text-[12.5px] leading-relaxed font-mono text-ink/90 dark:text-paper-ink/85">
               {(currentStep.body || []).map((para, idx) => (
-                <p key={idx}>{renderHighlightedText(para)}</p>
+                <p key={idx}>{renderRichText(para)}</p>
               ))}
             </div>
 
@@ -448,7 +434,7 @@ export default function LearnView({
                   {currentStep.callout.type}
                 </div>
                 <p className="mt-1.5 text-[12px] leading-relaxed font-mono text-ink/90 dark:text-paper-ink/90">
-                  {currentStep.callout.text}
+                  {renderRichText(currentStep.callout.text)}
                 </p>
               </div>
             )}

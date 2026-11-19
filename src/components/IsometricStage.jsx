@@ -271,23 +271,23 @@ function renderNodeShape(node, isDark) {
   }
 
   // Default 2.5D Isometric Hexagon (Origin / Service / Edge / Gateway / Load Balancer)
-  const hexTop = '0,-32 32,-16 32,12 0,28 -32,12 -32,-16';
-  const hexSideL = '-32,12 0,28 0,38 -32,22';
-  const hexSideR = '32,12 0,28 0,38 32,22';
+  const hexTop = '0,-33 44,-16 44,12 0,29 -44,12 -44,-16';
+  const hexSideL = '-44,12 0,29 0,39 -44,22';
+  const hexSideR = '44,12 0,29 0,39 44,22';
 
   return (
     <g opacity={opacity}>
-      <polygon points="0,-24 34,-8 34,20 0,36 -34,20 -34,-8" fill="#000" opacity={isDark ? 0.35 : 0.08} transform="translate(0, 8)" />
+      <polygon points="0,-24 46,-8 46,20 0,37 -46,20 -46,-8" fill="#000" opacity={isDark ? 0.35 : 0.08} transform="translate(0, 8)" />
       <polygon points={hexSideL} fill={fillSide} stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" />
       <polygon points={hexSideR} fill={fillSide} stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" opacity={0.85} />
       <polygon points={hexTop} fill={fillTop} stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" />
       {/* Small top emblem */}
-      <circle cx={0} cy={-14} r={3.5} fill={stroke} opacity={0.65} />
-      <text x={0} y={4} textAnchor="middle" fill={textMain} fontSize="11" fontWeight="700" fontFamily="Space Grotesk, sans-serif">
+      <circle cx={0} cy={-16} r={3.2} fill={stroke} opacity={0.65} />
+      <text x={0} y={2} textAnchor="middle" fill={textMain} fontSize="10.8" fontWeight="700" fontFamily="Space Grotesk, sans-serif">
         {node.label}
       </text>
       {node.sublabel && (
-        <text x={0} y={17} textAnchor="middle" fill={textMuted} fontSize="9.2" fontFamily="JetBrains Mono, monospace">
+        <text x={0} y={15.5} textAnchor="middle" fill={textMuted} fontSize="8.8" fontFamily="JetBrains Mono, monospace">
           {node.sublabel}
         </text>
       )}
@@ -335,10 +335,10 @@ export default function IsometricStage({
                 HUD_STATUS_STYLE[metric.status || 'info']
               }`}
             >
-              <div className="text-[9.5px] font-mono uppercase tracking-wider opacity-75 truncate">
+              <div className="text-[9.5px] font-mono uppercase tracking-wider opacity-75">
                 {metric.label}
               </div>
-              <div className="font-display text-sm sm:text-base font-bold leading-tight mt-0.5 truncate">
+              <div className="font-display text-xs sm:text-[13.5px] font-bold leading-snug mt-0.5 break-words">
                 {metric.value}
               </div>
             </div>
@@ -347,10 +347,10 @@ export default function IsometricStage({
       )}
 
       {/* Interactive Isometric SVG Canvas */}
-      <div className={`relative w-full ${fullscreen ? 'flex-1 min-h-0' : 'aspect-[16/10] sm:aspect-[16/9] min-h-[300px]'}`}>
+      <div className={`relative w-full ${fullscreen ? 'flex-1 min-h-0' : 'aspect-[16/10] sm:aspect-[16/9] min-h-[290px]'}`}>
         <svg
           key={replayNonce}
-          viewBox="0 0 760 420"
+          viewBox="0 0 760 440"
           className="w-full h-full select-none"
           role="img"
           aria-label={title || 'Interactive System Architecture Diagram'}
@@ -379,7 +379,7 @@ export default function IsometricStage({
           </defs>
 
           {/* Subtle isometric grid background */}
-          <rect x="0" y="0" width="760" height="420" fill="url(#isoDiamondGrid)" />
+          <rect x="0" y="0" width="760" height="440" fill="url(#isoDiamondGrid)" />
 
           {/* Edges + Animated Packet Dots */}
           {(scene.edges || []).map((edge, idx) => {
@@ -648,52 +648,50 @@ export default function IsometricStage({
             </g>
           )}
         </svg>
+      </div>
 
-        {/* Bottom Legend & Playback Controls Overlay */}
-        <div className="absolute bottom-2.5 inset-x-3 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-          {/* Legend */}
-          <div className="flex flex-wrap items-center gap-3 rounded-xl bg-paper-card/90 dark:bg-ink-card/90 px-3 py-1.5 border border-ink/15 dark:border-ink-border backdrop-blur-sm pointer-events-auto">
-            {(scene.legend || [
-              { label: 'request', tone: 'coral' },
-              { label: 'response', tone: 'green' },
-            ]).map((item, idx) => (
-              <span key={idx} className="inline-flex items-center gap-1.5 text-[11px] font-mono text-ink-muted dark:text-paper-ink/80">
-                <span
-                  className="inline-block w-2.5 h-2.5 rounded-full border border-ink/40"
-                  style={{ backgroundColor: getTone(item.tone).dot }}
-                />
-                {item.label}
-              </span>
-            ))}
-          </div>
+      {/* Dedicated Non-Overlapping Bottom Legend & Playback Controls Strip */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-t border-ink/10 dark:border-ink-border/70 bg-paper-card/85 dark:bg-ink-card/85">
+        <div className="flex flex-wrap items-center gap-3">
+          {(scene.legend || [
+            { label: 'request', tone: 'coral' },
+            { label: 'response', tone: 'green' },
+          ]).map((item, idx) => (
+            <span key={idx} className="inline-flex items-center gap-1.5 text-[11px] font-mono text-ink-muted dark:text-paper-ink/80">
+              <span
+                className="inline-block w-2.5 h-2.5 rounded-full border border-ink/40"
+                style={{ backgroundColor: getTone(item.tone).dot }}
+              />
+              {item.label}
+            </span>
+          ))}
+        </div>
 
-          {/* Controls: Replay, Pause, Fullscreen */}
-          <div className="flex items-center gap-1.5 pointer-events-auto">
-            <button
-              type="button"
-              onClick={onReplay}
-              title="Replay animations (R)"
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/70 bg-paper-card text-ink shadow-tactile-sm hover:bg-paper-subtle dark:border-paper-ink/35 dark:bg-ink-elevated dark:text-paper-ink"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={onTogglePause}
-              title={paused ? 'Resume animations (Space)' : 'Pause animations (Space)'}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/70 bg-paper-card text-ink shadow-tactile-sm hover:bg-paper-subtle dark:border-paper-ink/35 dark:bg-ink-elevated dark:text-paper-ink"
-            >
-              {paused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
-            </button>
-            <button
-              type="button"
-              onClick={() => setFullscreen((v) => !v)}
-              title={fullscreen ? 'Exit fullscreen' : 'Fullscreen diagram'}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/70 bg-paper-card text-ink shadow-tactile-sm hover:bg-paper-subtle dark:border-paper-ink/35 dark:bg-ink-elevated dark:text-paper-ink"
-            >
-              {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-            </button>
-          </div>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onReplay}
+            title="Replay animations (R)"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/70 bg-paper-card text-ink shadow-tactile-sm hover:bg-paper-subtle dark:border-paper-ink/35 dark:bg-ink-elevated dark:text-paper-ink"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onTogglePause}
+            title={paused ? 'Resume animations (Space)' : 'Pause animations (Space)'}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/70 bg-paper-card text-ink shadow-tactile-sm hover:bg-paper-subtle dark:border-paper-ink/35 dark:bg-ink-elevated dark:text-paper-ink"
+          >
+            {paused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            type="button"
+            onClick={() => setFullscreen((v) => !v)}
+            title={fullscreen ? 'Exit fullscreen' : 'Fullscreen diagram'}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink/70 bg-paper-card text-ink shadow-tactile-sm hover:bg-paper-subtle dark:border-paper-ink/35 dark:bg-ink-elevated dark:text-paper-ink"
+          >
+            {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          </button>
         </div>
       </div>
     </div>

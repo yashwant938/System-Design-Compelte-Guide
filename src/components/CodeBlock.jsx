@@ -23,13 +23,13 @@ export default function CodeBlock({ snippets, title }) {
 
   return (
     <div className="rounded-xl border border-ink/20 dark:border-ink-border bg-[#1B1917] text-[#F2EDE4] overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-white/10 bg-[#141210]">
+      {title && (
+        <div className="px-3.5 py-1.5 border-b border-white/10 bg-[#110F0D] text-[11px] font-mono uppercase tracking-wider text-amber-300/90 truncate">
+          {title}
+        </div>
+      )}
+      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/10 bg-[#141210]">
         <div className="flex items-center gap-1.5 flex-wrap">
-          {title && (
-            <span className="text-[11px] font-mono uppercase tracking-wider text-amber-300/90 mr-2">
-              {title}
-            </span>
-          )}
           {languages.map((lang) => (
             <button
               key={lang}
@@ -49,7 +49,7 @@ export default function CodeBlock({ snippets, title }) {
         <button
           type="button"
           onClick={handleCopy}
-          className="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-2.5 py-1 text-[11px] font-mono text-stone-300 hover:bg-white/10"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-white/15 px-2.5 py-1 text-[11px] font-mono text-stone-300 hover:bg-white/10"
         >
           {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
           {copied ? 'Copied' : 'Copy'}
