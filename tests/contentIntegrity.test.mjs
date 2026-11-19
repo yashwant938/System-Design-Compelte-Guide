@@ -14,7 +14,7 @@ test('Complete 12-module HLD + LLD curriculum has unique IDs and valid step scen
   const seenModIds = new Set();
   const seenLessonIds = new Set();
 
-  assert.equal(CURRICULUM_MODULES.length, 12, 'Expected all 12 HLD + LLD modules');
+  assert.ok(CURRICULUM_MODULES.length >= 13, 'Expected at least 13 HLD + In-The-Wild + LLD modules');
 
   for (const mod of CURRICULUM_MODULES) {
     assert.ok(mod.id && !seenModIds.has(mod.id), `Duplicate or missing module id: ${mod.id}`);
@@ -44,7 +44,8 @@ test('Complete 12-module HLD + LLD curriculum has unique IDs and valid step scen
   }
 
   const all = getAllLessons();
-  assert.equal(all.length, 67, 'Expected all 67 complete interactive HLD + LLD lessons');
+  assert.equal(all.length, seenLessonIds.size);
+  assert.ok(all.length >= 73, `Expected >= 73 lessons, got ${all.length}`);
 });
 
 test('All 23 GoF design patterns and 5 SOLID principles are complete', () => {
