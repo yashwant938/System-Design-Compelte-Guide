@@ -92,7 +92,7 @@ export default function PracticeView({
               Interview <span className="term-highlight">Practice</span> &amp; Rubrics
             </h1>
             <p className="text-xs sm:text-[13px] font-mono text-ink-muted dark:text-paper-ink/75 mt-1 max-w-2xl">
-              Drill 50 Staff-level HLD &amp; LLD scenario questions, inspect exact Big Tech hiring rubrics, and track your 60-day mastery roadmap.
+              Drill {QUIZ_BANK.length} Staff-level HLD, In-The-Wild &amp; LLD scenario questions, inspect exact Big Tech hiring rubrics, and track your 60-day mastery roadmap.
             </p>
           </div>
           {quizHistory?.length > 0 && (
@@ -104,7 +104,7 @@ export default function PracticeView({
 
         <div className="flex flex-wrap gap-2">
           {[
-            { id: 'quiz', label: `50-Q Staff Mock Exam`, icon: Target },
+            { id: 'quiz', label: `${QUIZ_BANK.length}-Q Staff Mock Exam`, icon: Target },
             { id: 'rubrics', label: 'Microsoft & FAANG Rubrics', icon: Building2 },
             { id: 'roadmap', label: `60-Day Study Plan (${roadmapPct}%)`, icon: CalendarCheck },
           ].map((tab) => {

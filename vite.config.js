@@ -18,6 +18,8 @@ export default defineConfig({
             './src/data/modules04_05.js',
             './src/data/modules06_09.js',
             './src/data/module10_hld_systems.js',
+            './src/data/module13_in_the_wild.js',
+            './src/data/module14_advanced_hld.js',
           ],
           lldData: [
             './src/data/gofPatterns23.js',

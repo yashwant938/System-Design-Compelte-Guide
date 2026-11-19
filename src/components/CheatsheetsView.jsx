@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowUpRight, Clock, Cpu, Database, Globe, Layers } from 'lucide-react';
 import {
+  CORE_DESIGN_PATTERNS,
   DECISION_MATRICES,
   HTTP_AND_POWERS,
   LATENCY_LADDER,
@@ -22,6 +23,47 @@ export default function CheatsheetsView({ onJumpToLesson }) {
         <p className="text-xs sm:text-[13px] font-mono text-ink-muted dark:text-paper-ink/75 mt-1 max-w-3xl">
           Review 30 minutes before your Microsoft, Google, Amazon, or Meta loop: 45-minute pacing blueprints, latency numbers, napkin math shortcuts, &ldquo;When to Use What&rdquo; decision matrices, and all 23 GoF design patterns on one page.
         </p>
+      </div>
+
+      {/* 6 Core Recurring System Design Patterns (Hello Interview Framework) */}
+      <div className="notebook-card p-5 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="text-[10.5px] font-mono uppercase tracking-wider text-sage-strong dark:text-[#A9E49E]">
+              Master These 6 Patterns → Solve 95% of All HLD Interviews
+            </div>
+            <h2 className="font-display text-lg font-bold">
+              6 Core Distributed System Design Patterns
+            </h2>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {CORE_DESIGN_PATTERNS.map((item) => (
+            <div
+              key={item.pattern}
+              className="flex flex-col justify-between rounded-xl border border-ink/15 dark:border-ink-border bg-paper/75 dark:bg-ink-elevated/60 p-3.5 space-y-2"
+            >
+              <div className="space-y-1.5">
+                <div className="font-display text-sm font-bold text-ink dark:text-paper-ink">
+                  {item.pattern}
+                </div>
+                <div className="text-[11px] font-mono text-sage-strong dark:text-[#A9E49E]">
+                  <strong>Triggers:</strong> {item.when}
+                </div>
+                <p className="text-[11px] font-mono text-ink-muted dark:text-paper-ink/80 leading-relaxed">
+                  {renderRichText(item.toolkit)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onJumpToLesson?.(item.lessonId)}
+                className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-lavender-strong dark:text-[#C4B5FD] hover:underline pt-1"
+              >
+                Open Deep Dive <ArrowUpRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* 45-Min HLD & LLD Playbooks Side-by-Side */}
