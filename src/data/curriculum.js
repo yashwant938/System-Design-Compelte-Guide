@@ -1,7 +1,13 @@
 import { MODULES_01_02 } from './modules01_02.js';
+import { MODULE_03_DATA_STORAGE } from './module03_data.js';
+import { MODULES_04_05 } from './modules04_05.js';
 
-// Aggregated curriculum registry — subsequent PRs append Modules 03..12 seamlessly
-export const CURRICULUM_MODULES = [...MODULES_01_02];
+// Aggregated curriculum registry — subsequent PRs append Modules 06..12 seamlessly
+export const CURRICULUM_MODULES = [
+  ...MODULES_01_02,
+  MODULE_03_DATA_STORAGE,
+  ...MODULES_04_05,
+];
 
 export function getAllLessons() {
   const list = [];
