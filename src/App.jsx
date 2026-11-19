@@ -173,7 +173,7 @@ export default function App() {
       { id: 'lab:quorum', kind: 'lab', subId: 'quorum', title: 'Quorum (W+R>N) & 5-Node Raft Lab', subtitle: 'Kill nodes and test Raft majority elections', category: 'Design Lab' },
       { id: 'lab:capacity', kind: 'lab', subId: 'capacity', title: 'Back-of-the-Envelope Napkin Math Estimator', subtitle: 'QPS, 5-year TB, Gbps, Cache RAM & Shards', category: 'Design Lab' },
       { id: 'lab:lld', kind: 'lab', subId: 'lld', title: 'LLD Seat Lock Race & Elevator LOOK Lab', subtitle: 'BookMyShow concurrency + 3-car LOOK dispatcher', category: 'Design Lab' },
-      { id: 'practice:exam', kind: 'practice', title: '75-Question Staff HLD, In-The-Wild & LLD Mock Exam', subtitle: 'Microsoft, Google, Amazon & Meta rubrics + 60-Day Plan', category: 'Practice War Room' },
+      { id: 'practice:exam', kind: 'practice', title: '100-Question Staff HLD, In-The-Wild & LLD Mock Exam', subtitle: 'Microsoft, Google, Amazon & Meta rubrics + 60-Day Plan', category: 'Practice War Room' },
       { id: 'cheatsheets:all', kind: 'cheatsheet', title: 'Visual Cheatsheets & Decision Matrices', subtitle: 'Latency ladder, Powers of 2, 45m blueprints & 23 GoF grid', category: 'Cheatsheets' },
     ];
 

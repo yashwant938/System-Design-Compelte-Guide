@@ -46,7 +46,7 @@ test('Complete 14-module HLD + In-The-Wild + LLD curriculum has unique IDs and v
 
   const all = getAllLessons();
   assert.equal(all.length, seenLessonIds.size);
-  assert.equal(all.length, 88, `Expected all 88 interactive HLD + In-The-Wild + LLD lessons, got ${all.length}`);
+  assert.equal(all.length, 100, `Expected all 100 interactive HLD + In-The-Wild + LLD lessons, got ${all.length}`);
 });
 
 test('All 23 GoF design patterns and 5 SOLID principles are complete', () => {
@@ -57,8 +57,8 @@ test('All 23 GoF design patterns and 5 SOLID principles are complete', () => {
   assert.equal(GOF_PATTERNS_23.filter((p) => p.category === 'Behavioral').length, 11);
 });
 
-test('75-question quiz bank, 6 core patterns, 4 company rubrics, 60-day roadmap & cheatsheets are valid', () => {
-  assert.equal(QUIZ_BANK.length, 75, 'Expected 75 curated Staff-level interview questions');
+test('100-question quiz bank, 6 core patterns, 4 company rubrics, 60-day roadmap & cheatsheets are valid', () => {
+  assert.equal(QUIZ_BANK.length, 100, 'Expected 100 curated Staff-level interview questions');
   const seenQ = new Set();
   for (const q of QUIZ_BANK) {
     assert.ok(q.id && !seenQ.has(q.id), `Duplicate quiz id: ${q.id}`);
