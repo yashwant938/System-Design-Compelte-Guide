@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    background-color: #F5F0E6;
+    color: #1F1D1A;
+  }
+
+  .dark body {
+    background-color: #161412;
+    color: #F2EDE4;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Tactile card & button primitives matching engineering notebook aesthetic */
+.notebook-card {
+  @apply rounded-2xl border border-ink/20 bg-paper-card dark:border-ink-border dark:bg-ink-card;
+}
+
+.notebook-btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl border border-ink/80 bg-paper-card px-3.5 py-2 text-xs font-semibold text-ink shadow-tactile-sm transition-all hover:-translate-y-0.5 active:translate-y-0 dark:border-paper-ink/40 dark:bg-ink-elevated dark:text-paper-ink dark:shadow-tactile-dark;
+}
+
+.notebook-btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl border-[1.5px] border-ink bg-sage px-4 py-2.5 text-sm font-bold text-ink shadow-tactile transition-all hover:-translate-y-0.5 hover:bg-[#a9da8d] active:translate-y-0 dark:border-sage/70 dark:bg-[#2F5D34] dark:text-[#E8F8E5] dark:hover:bg-[#386d3e] dark:shadow-tactile-dark;
+}
+
+/* Inline key-term highlight like designed-to-scale */
+.term-highlight {
+  background: linear-gradient(180deg, transparent 58%, rgba(163, 217, 132, 0.55) 58%);
+  font-weight: 600;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+.dark .term-highlight {
+  background: linear-gradient(180deg, transparent 58%, rgba(74, 158, 92, 0.45) 58%);
+}
+
+/* Subtle isometric diamond grid for the SVG stage */
+.iso-stage-bg {
+  background-color: #FAF6ED;
+}
+
+.dark .iso-stage-bg {
+  background-color: #1B1815;
+}
+
+/* Custom sleek scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(94, 88, 79, 0.3);
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(168, 160, 146, 0.25);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(46, 125, 50, 0.65);
+}
+
+/* Animated SVG paths */
+@keyframes dashFlow {
+  from {
+    stroke-dashoffset: 32;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-dash-flow {
+  stroke-dasharray: 6 6;
+  animation: dashFlow 1.6s linear infinite;
+}
+
+.paused-animations * {
+  animation-play-state: paused !important;
+}
