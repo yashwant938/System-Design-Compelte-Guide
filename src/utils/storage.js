@@ -18,7 +18,7 @@ const defaultProgress = {
 function setSessionCookie(userObj) {
   try {
     const encoded = encodeURIComponent(JSON.stringify(userObj));
-    const maxAge = 60 * 60 * 24 * 365; // 1 full year — asks login once only
+    const maxAge = 60 * 60 * 24 * 365; // 1 full year — asked once only
     document.cookie = `${USER_COOKIE_NAME}=${encoded}; path=/; max-age=${maxAge}; SameSite=Lax`;
   } catch {
     // Ignore cookie errors in restricted environments
@@ -33,7 +33,7 @@ function readSessionCookie() {
     if (!match) return null;
     const raw = decodeURIComponent(match.split('=').slice(1).join('='));
     const parsed = JSON.parse(raw);
-    if (parsed && parsed.email && parsed.name) return parsed;
+    if (parsed && parsed.name) return parsed;
     return null;
   } catch {
     return null;
@@ -53,8 +53,8 @@ export function loadUserSession() {
     const raw = window.localStorage.getItem(USER_SESSION_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && parsed.email && parsed.name) {
-        setSessionCookie(parsed); // keep cookie fresh
+      if (parsed && parsed.name) {
+        setSessionCookie(parsed);
         return parsed;
       }
     }
@@ -75,10 +75,15 @@ export function loadUserSession() {
 }
 
 export function saveUserSession(userObj) {
+  const cleanName = String(userObj.name || 'Learner').trim() || 'Learner';
+  const cleanHandle = String(userObj.handle || userObj.email || cleanName)
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-');
   const normalized = {
-    name: String(userObj.name || '').trim(),
-    email: String(userObj.email || '').trim().toLowerCase(),
-    target: userObj.target || 'Microsoft & Big Tech',
+    name: cleanName,
+    handle: cleanHandle,
+    target: userObj.target || 'Microsoft (L60–L65)',
     createdAt: userObj.createdAt || new Date().toISOString(),
   };
   try {
@@ -99,17 +104,16 @@ export function clearUserSession() {
   clearSessionCookie();
 }
 
-function progressKeyFor(email) {
-  const safe = String(email || 'guest').trim().toLowerCase();
+function progressKeyFor(profileKey) {
+  const safe = String(profileKey || 'default').trim().toLowerCase();
   return `${PROGRESS_PREFIX}${safe}`;
 }
 
-export function loadProgress(email) {
+export function loadProgress(profileKey) {
   try {
-    const scopedKey = progressKeyFor(email);
+    const scopedKey = progressKeyFor(profileKey);
     let raw = window.localStorage.getItem(scopedKey);
 
-    // Seamless one-time migration from legacy v1 storage so existing progress is never lost
     if (!raw) {
       const legacyRaw = window.localStorage.getItem(LEGACY_STORAGE_KEY);
       if (legacyRaw) {
@@ -133,12 +137,11 @@ export function loadProgress(email) {
   }
 }
 
-export function saveProgress(state, email) {
+export function saveProgress(state, profileKey) {
   try {
-    const scopedKey = progressKeyFor(email);
+    const scopedKey = progressKeyFor(profileKey);
     const payload = JSON.stringify(state);
     window.localStorage.setItem(scopedKey, payload);
-    // Keep legacy key mirrored too for backward compatibility
     window.localStorage.setItem(LEGACY_STORAGE_KEY, payload);
   } catch {
     // Ignore quota/private-mode storage errors
@@ -166,7 +169,7 @@ export function decodeSyncCode(code) {
   if (!cleaned) throw new Error('Sync code is empty');
   const json = decodeURIComponent(escape(atob(cleaned)));
   const parsed = JSON.parse(json);
-  if (!parsed || !parsed.user?.email || !parsed.progress) {
+  if (!parsed || !parsed.user?.name || !parsed.progress) {
     throw new Error('Invalid sync code format');
   }
   return parsed;

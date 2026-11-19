@@ -22,9 +22,8 @@ const TARGETS = [
 ];
 
 export function OneTimeLoginModal({ onLogin, onRestoreSync }) {
-  const [mode, setMode] = useState('signin'); // 'signin' | 'restore'
+  const [mode, setMode] = useState('setup'); // 'setup' | 'restore'
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [target, setTarget] = useState(TARGETS[0]);
   const [syncInput, setSyncInput] = useState('');
   const [error, setError] = useState('');
@@ -43,31 +42,26 @@ export function OneTimeLoginModal({ onLogin, onRestoreSync }) {
     }
 
     const cleanName = name.trim();
-    const cleanEmail = email.trim().toLowerCase();
     if (!cleanName) {
-      setError('Please enter your name.');
+      setError('Please enter a display name for your study workspace.');
       return;
     }
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      setError('Please enter a valid email address so your completion progress stays tied to your profile.');
-      return;
-    }
-    onLogin({ name: cleanName, email: cleanEmail, target });
+    onLogin({ name: cleanName, target });
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-sm p-4">
       <div className="w-full max-w-md rounded-2xl border-[1.5px] border-ink bg-paper-card p-6 shadow-tactile dark:border-paper-ink/40 dark:bg-ink-card space-y-5">
         {/* Header */}
         <div className="space-y-2 text-center">
           <div className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-sage-strong/40 bg-sage/45 px-3 py-1 text-[11px] font-mono font-bold text-sage-text dark:bg-sage-dark dark:text-[#C9F2BE]">
-            <Sparkles className="h-3.5 w-3.5" /> One-Time Sign In · Remembered Forever
+            <Sparkles className="h-3.5 w-3.5" /> One-Time Workspace Setup
           </div>
           <h1 className="font-display text-2xl font-bold text-ink dark:text-paper-ink">
-            Welcome to System <span className="term-highlight">Design</span> Atlas
+            System <span className="term-highlight">Design</span> Study Atlas
           </h1>
           <p className="text-xs font-mono text-ink-muted dark:text-paper-ink/75">
-            Sign in once to save your completed lessons (0 / 100), bookmarks, 60-day roadmap, and 100-Q exam scores automatically. You will not be asked again on this browser.
+            Set your study name once to track completed lessons (0 / 100), bookmarks, your 60-day plan, and 100-Q exam scores. Saved automatically — never asked again on this browser.
           </p>
         </div>
 
@@ -75,14 +69,14 @@ export function OneTimeLoginModal({ onLogin, onRestoreSync }) {
         <div className="grid grid-cols-2 gap-1 rounded-xl border border-ink/15 bg-paper p-1 dark:border-ink-border dark:bg-ink-elevated">
           <button
             type="button"
-            onClick={() => { setMode('signin'); setError(''); }}
+            onClick={() => { setMode('setup'); setError(''); }}
             className={`rounded-lg py-1.5 text-xs font-mono font-semibold transition-colors ${
-              mode === 'signin'
+              mode === 'setup'
                 ? 'bg-sage text-ink border border-ink/30 dark:bg-sage-dark dark:text-[#C9F2BE]'
                 : 'text-ink-muted'
             }`}
           >
-            New / Returning Sign In
+            Start Workspace
           </button>
           <button
             type="button"
@@ -98,31 +92,19 @@ export function OneTimeLoginModal({ onLogin, onRestoreSync }) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
-          {mode === 'signin' ? (
+          {mode === 'setup' ? (
             <>
               <div className="space-y-1">
                 <label className="block text-[11px] font-mono font-bold uppercase text-ink-muted">
-                  Your Name
+                  Your Study Name / Nickname
                 </label>
                 <input
                   type="text"
+                  autoComplete="off"
                   autoFocus
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g., Yashwant"
-                  className="w-full rounded-xl border border-ink/25 bg-paper px-3.5 py-2.5 text-sm font-mono text-ink dark:border-ink-border dark:bg-ink-elevated dark:text-paper-ink focus:outline-none focus:border-sage-strong"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-[11px] font-mono font-bold uppercase text-ink-muted">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@domain.com"
                   className="w-full rounded-xl border border-ink/25 bg-paper px-3.5 py-2.5 text-sm font-mono text-ink dark:border-ink-border dark:bg-ink-elevated dark:text-paper-ink focus:outline-none focus:border-sage-strong"
                 />
               </div>
@@ -171,13 +153,13 @@ export function OneTimeLoginModal({ onLogin, onRestoreSync }) {
           )}
 
           <button type="submit" className="notebook-btn-primary w-full py-3 text-sm">
-            {mode === 'signin' ? 'Sign In Once & Start Mastering' : 'Restore Profile & Progress'}
+            {mode === 'setup' ? 'Save Once & Start Learning' : 'Restore Profile & Progress'}
             <ArrowRight className="h-4 w-4" />
           </button>
 
           <div className="flex items-center justify-center gap-1.5 text-[10.5px] font-mono text-ink-muted">
             <ShieldCheck className="h-3.5 w-3.5 text-sage-strong" />
-            Stored privately on your device · Never asks again unless you Sign Out
+            100% local &amp; private · No password or email required
           </div>
         </form>
       </div>
@@ -241,8 +223,7 @@ export function ProfilePopover({
             </div>
             <div className="min-w-0">
               <div className="font-display text-sm font-bold truncate">{user.name}</div>
-              <div className="text-[11px] font-mono text-ink-muted truncate">{user.email}</div>
-              <div className="text-[10px] font-mono text-sage-strong dark:text-[#A9E49E] font-semibold">
+              <div className="text-[10.5px] font-mono text-sage-strong dark:text-[#A9E49E] font-semibold">
                 Target: {user.target}
               </div>
             </div>
@@ -295,10 +276,10 @@ export function ProfilePopover({
           )}
         </div>
 
-        {/* Sign Out */}
+        {/* Switch Profile */}
         <div className="pt-2 border-t border-ink/10 dark:border-ink-border flex items-center justify-between">
           <span className="inline-flex items-center gap-1 text-[10.5px] font-mono text-ink-muted">
-            <User className="h-3 w-3" /> Auto-logged in
+            <User className="h-3 w-3" /> Remembered permanently
           </span>
           <button
             type="button"
@@ -308,7 +289,7 @@ export function ProfilePopover({
             }}
             className="inline-flex items-center gap-1.5 rounded-lg border border-coral-strong/40 bg-coral/25 px-2.5 py-1 text-[11px] font-mono font-semibold text-coral-strong hover:bg-coral/40 dark:bg-coral-dark dark:text-[#FCA5A5]"
           >
-            <LogOut className="h-3.5 w-3.5" /> Sign Out
+            <LogOut className="h-3.5 w-3.5" /> Switch Profile
           </button>
         </div>
       </div>

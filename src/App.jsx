@@ -33,7 +33,7 @@ function parseHash() {
 
 export default function App() {
   const [user, setUser] = useState(() => loadUserSession());
-  const [progress, setProgress] = useState(() => loadProgress(loadUserSession()?.email));
+  const [progress, setProgress] = useState(() => loadProgress(loadUserSession()?.handle || loadUserSession()?.email));
   const [route, setRoute] = useState(() => parseHash());
   const [searchOpen, setSearchOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -61,8 +61,8 @@ export default function App() {
 
   // Persist per-account progress cleanly whenever it updates
   useEffect(() => {
-    saveProgress(progress, user?.email);
-  }, [progress, user?.email]);
+    saveProgress(progress, user?.handle || user?.email);
+  }, [progress, user?.handle, user?.email]);
 
   useEffect(() => {
     const onHashChange = () => setRoute(parseHash());
@@ -89,10 +89,10 @@ export default function App() {
   const handleLogin = useCallback(
     (userInput) => {
       const savedUser = saveUserSession(userInput);
-      const userProgress = loadProgress(savedUser.email);
+      const userProgress = loadProgress(savedUser.handle);
       setUser(savedUser);
       setProgress(userProgress);
-      showToast(`Signed in as ${savedUser.name} — remembered automatically!`);
+      showToast(`Welcome ${savedUser.name} — workspace saved automatically!`);
     },
     [showToast]
   );
@@ -101,10 +101,10 @@ export default function App() {
     (restoredUser, restoredProgress) => {
       const savedUser = saveUserSession(restoredUser);
       const merged = {
-        ...loadProgress(savedUser.email),
+        ...loadProgress(savedUser.handle),
         ...restoredProgress,
       };
-      saveProgress(merged, savedUser.email);
+      saveProgress(merged, savedUser.handle);
       setUser(savedUser);
       setProgress(merged);
       showToast(`Restored ${merged.completedIds.length}/${allLessons.length} completed lessons!`);

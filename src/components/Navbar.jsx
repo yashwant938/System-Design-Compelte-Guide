@@ -121,7 +121,7 @@ export default function Navbar({
             <button
               type="button"
               onClick={onOpenProfile}
-              title={`Signed in as ${user.name} (${user.email})`}
+              title={`Workspace profile: ${user.name} (${user.target})`}
               className="inline-flex items-center gap-1.5 rounded-xl border border-ink/30 bg-sage/55 px-2.5 py-1.5 text-xs font-mono font-bold text-ink hover:bg-sage/80 dark:border-sage/40 dark:bg-sage-dark dark:text-[#C9F2BE]"
             >
               <span className="flex h-5 w-5 items-center justify-center rounded-md bg-paper-card text-[10px] font-display font-bold text-ink border border-ink/25 dark:bg-ink-card dark:text-paper-ink">

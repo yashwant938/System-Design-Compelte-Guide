@@ -1,5 +1,7 @@
 # System Design Complete Guide — Interactive HLD, In-The-Wild & LLD Mastery Atlas
 
+**Live Platform (Cloudflare Edge — Fast HTTPS, Zero Warnings):** https://system-design-guide.yashwant938.workers.dev
+
 An all-in-one, interactive visual study platform covering **High-Level Design (HLD)**, **Real-World "In The Wild" Production Engineering Deep Dives**, and **Low-Level Design (LLD) / Machine Coding** for **Microsoft (L60–L65)**, **Google (L4–L6)**, **Amazon (SDE2/SDE3)**, and **Meta (E4–E6)** interviews.
 
 Synthesizes the animated step-by-step visual clarity of [designed-to-scale](https://designed-to-scale.vercel.app/#/cdn/1), the architectural breadth of [ByteByteGo `system-design-101`](https://github.com/ByteByteGoHq/system-design-101), the fundamentals depth of [karanpratapsingh/system-design](https://github.com/karanpratapsingh/system-design), and the real-world production breakdowns of [Hello Interview](https://www.hellointerview.com/learn/system-design/in-the-wild/shopify-inventory-reservations) — all inside **one self-contained interactive website** with zero "coming soon" placeholders.
@@ -61,10 +63,17 @@ npm run build
 npm run preview
 ```
 
-### Deploy to GitHub Pages
+### Deploy to Cloudflare Workers (Recommended — Edge HTTPS)
+
+```bash
+npm run build
+npx wrangler deploy
+```
+
+### Deploy Static Bundle to GitHub Pages
 
 ```bash
 npm run deploy
 ```
 
-> Built with React 19, Vite 6, Tailwind CSS, Lucide Icons, and a custom 2.5D Isometric SVG Stage Engine. Works 100% statically on GitHub Pages, Vercel, Cloudflare Pages, or Netlify with zero backend required.
+> Built with React 19, Vite 6, Tailwind CSS, Lucide Icons, and a custom 2.5D Isometric SVG Stage Engine. Hosted live on Cloudflare Workers (`https://system-design-guide.yashwant938.workers.dev`) with zero backend required.
