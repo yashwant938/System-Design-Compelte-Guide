@@ -6,6 +6,7 @@ export default function Sidebar({
   activeLessonId,
   completedIds,
   onSelectLesson,
+  onToggleComplete,
   openMobile,
   onCloseMobile,
   desktopCollapsed,
@@ -129,28 +130,41 @@ export default function Sidebar({
                     const isActive = lesson.id === activeLessonId;
                     const isDone = completedIds.includes(lesson.id);
                     return (
-                      <button
+                      <div
                         key={lesson.id}
-                        type="button"
-                        onClick={() => {
-                          onSelectLesson(lesson.id, 1);
-                          onCloseMobile?.();
-                        }}
-                        className={`w-full flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-[11.5px] font-mono transition-all ${
+                        className={`w-full flex items-center justify-between gap-1.5 rounded-lg px-2 py-1.5 text-left text-[11.5px] font-mono transition-all ${
                           isActive
                             ? 'bg-sage/75 text-ink font-semibold border border-ink/35 dark:bg-sage-dark dark:text-[#D5F5CC] dark:border-sage/50'
                             : 'text-ink-muted hover:bg-paper-card hover:text-ink dark:text-paper-ink/75 dark:hover:bg-ink-card'
                         }`}
                       >
-                        <span className="truncate">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onSelectLesson(lesson.id, 1);
+                            onCloseMobile?.();
+                          }}
+                          className="flex-1 min-w-0 text-left truncate py-0.5"
+                        >
                           {idx + 1}. {lesson.title}
-                        </span>
-                        {isDone ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-sage-strong dark:text-[#9AE68E]" />
-                        ) : (
-                          <Circle className="h-3 w-3 shrink-0 opacity-30" />
-                        )}
-                      </button>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleComplete?.(lesson.id);
+                          }}
+                          title={isDone ? 'Completed — click to undo' : 'Click to mark complete'}
+                          aria-label={isDone ? `Unmark ${lesson.title} complete` : `Mark ${lesson.title} complete`}
+                          className="shrink-0 rounded-full p-0.5 hover:scale-110 transition-transform"
+                        >
+                          {isDone ? (
+                            <CheckCircle2 className="h-4 w-4 text-sage-strong dark:text-[#9AE68E]" />
+                          ) : (
+                            <Circle className="h-3.5 w-3.5 opacity-40 hover:opacity-90" />
+                          )}
+                        </button>
+                      </div>
                     );
                   })}
                 </div>

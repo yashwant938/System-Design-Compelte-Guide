@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { CheckCircle2 } from 'lucide-react';
 import Navbar from './components/Navbar.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import LearnView from './components/LearnView.jsx';
@@ -6,10 +7,17 @@ import DesignLabView from './components/DesignLabView.jsx';
 import PracticeView from './components/PracticeView.jsx';
 import CheatsheetsView from './components/CheatsheetsView.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
+import { OneTimeLoginModal, ProfilePopover } from './components/AuthGate.jsx';
 import { GofPatternsExplorerWidget, SolidComparatorWidget } from './components/GofPatternsExplorer.jsx';
 import { CURRICULUM_MODULES, findLessonById, getAllLessons } from './data/curriculum.js';
 import { GOF_PATTERNS_23 } from './data/gofPatterns23.js';
-import { loadProgress, saveProgress } from './utils/storage.js';
+import {
+  clearUserSession,
+  loadProgress,
+  loadUserSession,
+  saveProgress,
+  saveUserSession,
+} from './utils/storage.js';
 
 function parseHash() {
   const raw = window.location.hash.replace(/^#\/?/, '').trim();
@@ -24,13 +32,26 @@ function parseHash() {
 }
 
 export default function App() {
-  const [progress, setProgress] = useState(() => loadProgress());
+  const [user, setUser] = useState(() => loadUserSession());
+  const [progress, setProgress] = useState(() => loadProgress(loadUserSession()?.handle || loadUserSession()?.email));
   const [route, setRoute] = useState(() => parseHash());
   const [searchOpen, setSearchOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const isDark = progress.theme === 'dark';
+
+  const showToast = useCallback((message) => {
+    setToast(message);
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2600);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -38,9 +59,10 @@ export default function App() {
     else root.classList.remove('dark');
   }, [isDark]);
 
+  // Persist per-account progress cleanly whenever it updates
   useEffect(() => {
-    saveProgress(progress);
-  }, [progress]);
+    saveProgress(progress, user?.handle || user?.email);
+  }, [progress, user?.handle, user?.email]);
 
   useEffect(() => {
     const onHashChange = () => setRoute(parseHash());
@@ -64,6 +86,37 @@ export default function App() {
     return findLessonById(route.lessonId) || findLessonById('cdn') || allLessons[0] || null;
   }, [route.lessonId, allLessons]);
 
+  const handleLogin = useCallback(
+    (userInput) => {
+      const savedUser = saveUserSession(userInput);
+      const userProgress = loadProgress(savedUser.handle);
+      setUser(savedUser);
+      setProgress(userProgress);
+      showToast(`Welcome ${savedUser.name} — workspace saved automatically!`);
+    },
+    [showToast]
+  );
+
+  const handleRestoreSync = useCallback(
+    (restoredUser, restoredProgress) => {
+      const savedUser = saveUserSession(restoredUser);
+      const merged = {
+        ...loadProgress(savedUser.handle),
+        ...restoredProgress,
+      };
+      saveProgress(merged, savedUser.handle);
+      setUser(savedUser);
+      setProgress(merged);
+      showToast(`Restored ${merged.completedIds.length}/${allLessons.length} completed lessons!`);
+    },
+    [allLessons.length, showToast]
+  );
+
+  const handleSignOut = useCallback(() => {
+    clearUserSession();
+    setUser(null);
+  }, []);
+
   const navigateLesson = useCallback((lessonId, step = 1) => {
     window.location.hash = `#/${lessonId}/${step}`;
     setRoute({ tab: 'learn', lessonId, step, subId: null });
@@ -85,19 +138,30 @@ export default function App() {
     [activeEntry, route.step]
   );
 
-  const handleToggleComplete = useCallback((lessonId, forceValue) => {
-    setProgress((prev) => {
-      const exists = prev.completedIds.includes(lessonId);
-      const shouldBeDone = typeof forceValue === 'boolean' ? forceValue : !exists;
-      if (shouldBeDone === exists) return prev;
-      return {
-        ...prev,
-        completedIds: shouldBeDone
+  const handleToggleComplete = useCallback(
+    (lessonId, forceValue) => {
+      const lessonMeta = findLessonById(lessonId)?.lesson;
+      setProgress((prev) => {
+        const exists = prev.completedIds.includes(lessonId);
+        const shouldBeDone = typeof forceValue === 'boolean' ? forceValue : !exists;
+        if (shouldBeDone === exists) return prev;
+        const nextCompleted = shouldBeDone
           ? [...prev.completedIds, lessonId]
-          : prev.completedIds.filter((id) => id !== lessonId),
-      };
-    });
-  }, []);
+          : prev.completedIds.filter((id) => id !== lessonId);
+        const title = lessonMeta?.title || 'Lesson';
+        showToast(
+          shouldBeDone
+            ? `Completed "${title}" (${nextCompleted.length}/${allLessons.length})`
+            : `Unmarked "${title}" (${nextCompleted.length}/${allLessons.length})`
+        );
+        return {
+          ...prev,
+          completedIds: nextCompleted,
+        };
+      });
+    },
+    [allLessons.length, showToast]
+  );
 
   const handleToggleBookmark = useCallback((lessonId) => {
     setProgress((prev) => {
@@ -191,6 +255,8 @@ export default function App() {
         onToggleSidebar={handleToggleSidebar}
         completedCount={progress.completedIds.length}
         totalLessons={allLessons.length}
+        user={user}
+        onOpenProfile={() => setProfileOpen(true)}
       />
 
       <div className="flex flex-1 min-h-0">
@@ -200,6 +266,7 @@ export default function App() {
             activeLessonId={activeEntry?.lesson?.id}
             completedIds={progress.completedIds}
             onSelectLesson={(id, st) => navigateLesson(id, st)}
+            onToggleComplete={handleToggleComplete}
             openMobile={mobileSidebarOpen}
             onCloseMobile={() => setMobileSidebarOpen(false)}
             desktopCollapsed={desktopSidebarCollapsed}
@@ -248,6 +315,31 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {/* One-Time Login Modal (asks strictly once per browser unless user signs out) */}
+      {!user && (
+        <OneTimeLoginModal onLogin={handleLogin} onRestoreSync={handleRestoreSync} />
+      )}
+
+      {/* Profile & Sync Code Popover */}
+      <ProfilePopover
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        user={user}
+        progress={progress}
+        completedCount={progress.completedIds.length}
+        totalLessons={allLessons.length}
+        onRestoreSync={handleRestoreSync}
+        onSignOut={handleSignOut}
+      />
+
+      {/* Instant Completion Confirmation Toast */}
+      {toast && (
+        <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-xl border-[1.5px] border-ink bg-sage px-4 py-2.5 text-xs font-mono font-bold text-ink shadow-tactile dark:border-sage dark:bg-[#2F5D34] dark:text-[#E8F8E5]">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span>{toast}</span>
+        </div>
+      )}
 
       <CommandPalette
         open={searchOpen}
