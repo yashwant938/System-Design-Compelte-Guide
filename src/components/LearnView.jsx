@@ -86,13 +86,6 @@ export default function LearnView({
     }
   }, [lesson?.id]);
 
-  // Auto-mark lesson complete when user reaches the final step
-  useEffect(() => {
-    if (lesson && steps.length > 0 && safeStepIdx === steps.length - 1 && !isCompleted) {
-      onToggleComplete(lesson.id, true);
-    }
-  }, [lesson?.id, safeStepIdx, steps.length, isCompleted, onToggleComplete]);
-
   // Keyboard shortcuts: Left/Right arrows step, R replay, Space pause
   useEffect(() => {
     const onKey = (e) => {
@@ -175,7 +168,7 @@ export default function LearnView({
                 </p>
               </div>
 
-              {/* Badges + Bookmark */}
+              {/* Badges + Mark Complete + Bookmark */}
               <div className="flex flex-wrap items-center gap-1.5 shrink-0">
                 <span className="inline-flex items-center gap-1 rounded-full border border-ink/50 bg-sand px-2.5 py-1 text-[11px] font-mono font-semibold text-ink dark:border-sand/40 dark:bg-sand-dark dark:text-[#F5CF87]">
                   <Clock className="h-3 w-3" />
@@ -187,6 +180,18 @@ export default function LearnView({
                 <span className="inline-flex items-center gap-1 rounded-full border border-ink/50 bg-lavender px-2.5 py-1 text-[11px] font-mono font-semibold text-ink dark:border-lavender/40 dark:bg-lavender-dark dark:text-[#C4B5FD]">
                   {steps.length} steps
                 </span>
+                <button
+                  type="button"
+                  onClick={() => onToggleComplete(lesson.id)}
+                  className={`inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-3 py-1 text-[11px] font-mono font-bold transition-colors ${
+                    isCompleted
+                      ? 'border-sage-strong bg-sage text-ink shadow-tactile-sm dark:border-sage dark:bg-[#2F5D34] dark:text-[#E8F8E5]'
+                      : 'border-ink/60 bg-paper-card text-ink hover:bg-sage/45 dark:border-paper-ink/40 dark:bg-ink-elevated dark:text-paper-ink'
+                  }`}
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  {isCompleted ? 'Completed' : 'Mark Complete'}
+                </button>
                 <button
                   type="button"
                   onClick={() => onToggleBookmark(lesson.id)}
@@ -499,23 +504,40 @@ export default function LearnView({
               ) : nextLesson ? (
                 <button
                   type="button"
-                  onClick={() => onSelectLesson(nextLesson.id, 1)}
+                  onClick={() => {
+                    if (!isCompleted) onToggleComplete(lesson.id, true);
+                    onSelectLesson(nextLesson.id, 1);
+                  }}
                   className="notebook-btn-primary flex-1 justify-between text-left"
                 >
-                  <span className="truncate">Next: {nextLesson.title}</span>
+                  <span className="truncate">Complete &amp; Next: {nextLesson.title}</span>
                   <ArrowRight className="h-4 w-4 shrink-0" />
                 </button>
               ) : (
                 <button
                   type="button"
-                  onClick={() => onToggleComplete(lesson.id, !isCompleted)}
+                  onClick={() => onToggleComplete(lesson.id, true)}
                   className="notebook-btn-primary flex-1"
                 >
                   <CheckCircle2 className="h-4 w-4" />
-                  {isCompleted ? 'Completed' : 'Mark Mastered'}
+                  {isCompleted ? 'Completed ✓' : 'Complete Lesson'}
                 </button>
               )}
             </div>
+
+            {/* Direct One-Click Complete Toggle on Every Step */}
+            <button
+              type="button"
+              onClick={() => onToggleComplete(lesson.id)}
+              className={`w-full inline-flex items-center justify-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-mono font-bold transition-colors ${
+                isCompleted
+                  ? 'border-sage-strong bg-sage/55 text-sage-text dark:border-sage dark:bg-sage-dark dark:text-[#C9F2BE]'
+                  : 'border-ink/25 bg-paper text-ink hover:bg-sage/30 dark:border-ink-border dark:bg-ink-elevated dark:text-paper-ink'
+              }`}
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              {isCompleted ? 'Lesson Completed ✓ (Click to Undo)' : 'Mark This Lesson Complete'}
+            </button>
 
             <div className="text-center text-[10.5px] font-mono text-ink-muted dark:text-paper-ink/55">
               ← → step · R replay · Space pause
