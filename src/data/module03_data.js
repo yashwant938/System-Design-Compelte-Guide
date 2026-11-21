@@ -8,6 +8,10 @@ export const MODULE_03_DATA_STORAGE = {
   lessons: [
     {
       id: 'sql-nosql',
+      sources: [
+        { title: 'Google Research, Spanner architecture and commit-wait', url: 'https://research.google/pubs/spanner-googles-globally-distributed-database/' },
+        { title: 'Google Cloud, TrueTime and external consistency', url: 'https://docs.cloud.google.com/spanner/docs/true-time-external-consistency' },
+      ],
       title: 'SQL vs NoSQL',
       subtitle: 'Choosing between Relational ACID, Document, Key-Value, Wide-Column, Graph, Time-Series, and Vector DBs.',
       duration: '10 min',
@@ -94,36 +98,37 @@ export const MODULE_03_DATA_STORAGE = {
         {
           shortLabel: 'NewSQL',
           stage: 'SOLUTION',
-          title: 'Distributed SQL (Spanner / CockroachDB) bridges both worlds',
+          title: 'How Spanner orders transactions across shards',
           body: [
-            'Modern **Distributed SQL** engines (Google Spanner, CockroachDB, TiDB) give you familiar SQL + global ACID transactions across horizontal shards using **Raft/Paxos consensus** and **TrueTime / HLC clocks**.',
-            'The trade-off? Cross-region consensus commits add **30–100 ms write latency** because a quorum across datacenters must agree before returning COMMIT.',
+            '**Distributed SQL** combines a relational interface with transactions across shards. In the Spanner design, each replica group uses Paxos. A transaction writing to multiple groups uses two-phase commit across those groups.',
+            'Placement determines which acknowledgments cross a region boundary. A single-group write and a multi-group transaction can take different paths. Estimate latency from the leader, the required replicas, and any cross-group coordination.',
           ],
           callout: {
             type: 'GOOD TO KNOW',
-            text: 'Google Spanner uses GPS + atomic clocks (TrueTime) to bound clock uncertainty to < 7 ms, enabling External Consistency (globally ordered serializable transactions).',
+            text: 'TrueTime returns an interval that contains the current time. Its width varies. Before exposing a commit, Spanner waits until the earliest possible current time has passed the chosen commit timestamp. This helps preserve real-time order between completed transactions.',
           },
           scene: {
             hud: [
               { label: 'SQL + ACID', value: 'Yes (Global)', status: 'good' },
               { label: 'SHARDING', value: 'Automatic', status: 'good' },
-              { label: 'CONSENSUS', value: 'Paxos / Raft', status: 'info' },
+              { label: 'CONSENSUS', value: 'Paxos per group', status: 'info' },
               { label: 'WRITE LATENCY', value: 'Higher (WAN RTT)', status: 'warn' },
             ],
             nodes: [
               { id: 'c', type: 'users', x: 115, y: 215, label: 'Global App', sublabel: 'SQL Client', tone: 'slate' },
-              { id: 'r1', type: 'db', x: 350, y: 120, label: 'Range 1 (US)', sublabel: 'Raft Leader', tone: 'green', badge: 'quorum', badgeTone: 'green' },
-              { id: 'r2', type: 'db', x: 350, y: 310, label: 'Range 2 (EU)', sublabel: 'Raft Leader', tone: 'blue' },
-              { id: 'r3', type: 'db', x: 615, y: 215, label: 'Replica (APAC)', sublabel: 'Synced Log', tone: 'purple' },
+              { id: 'r1', type: 'db', x: 350, y: 120, label: 'Group A lead', sublabel: 'Commit coordinator', tone: 'green' },
+              { id: 'r2', type: 'db', x: 350, y: 310, label: 'Group B lead', sublabel: 'Participant', tone: 'blue' },
+              { id: 'r3', type: 'db', x: 615, y: 120, label: 'Group A peers', sublabel: 'Paxos replicas', tone: 'purple' },
             ],
             edges: [
               { from: 'c', to: 'r1', label: 'TX write', packetColor: 'green', bidirectional: true, speed: 1.9 },
-              { from: 'r1', to: 'r3', label: 'Raft commit', packetColor: 'purple', dashed: true, speed: 2.3 },
-              { from: 'r2', to: 'r3', label: 'Raft commit', packetColor: 'blue', dashed: true, speed: 2.3 },
+              { from: 'r1', to: 'r3', label: 'replicate', packetColor: 'purple', dashed: true, speed: 2.3 },
+              { from: 'r1', to: 'r2', label: '2PC', packetColor: 'blue', bidirectional: true, speed: 2.3 },
             ],
             legend: [
               { label: 'distributed ACID write', tone: 'green' },
-              { label: 'cross-region Raft', tone: 'purple' },
+              { label: 'Paxos replication', tone: 'purple' },
+              { label: 'cross-group commit', tone: 'blue' },
             ],
           },
         },
@@ -367,6 +372,10 @@ export const MODULE_03_DATA_STORAGE = {
 
     {
       id: 'replication',
+      sources: [
+        { title: 'PostgreSQL, synchronous replication and standby reads', url: 'https://www.postgresql.org/docs/current/warm-standby.html#SYNCHRONOUS-REPLICATION' },
+        { title: 'Amazon Dynamo paper, replica selection, reads and hinted handoff', url: 'https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf' },
+      ],
       title: 'Replication',
       subtitle: 'Single-Leader sync vs async, Multi-Leader conflicts, and Leaderless Dynamo quorums (W + R > N).',
       duration: '11 min',
@@ -374,7 +383,7 @@ export const MODULE_03_DATA_STORAGE = {
       companies: ['Amazon', 'Meta', 'Microsoft', 'Google'],
       tags: ['leader-follower', 'replication lag', 'multi-leader', 'leaderless', 'quorum', 'read-your-writes', 'merkle tree'],
       objectives: [
-        'Compare Sync vs Semi-Sync vs Async Leader-Follower replication',
+        'Distinguish durable acknowledgments from visibility on a read replica',
         'Handle Replication Lag anomalies (Read-Your-Writes, Monotonic Reads)',
         'Understand Leaderless Dynamo quorums (W + R > N), Read Repair, and Hinted Handoff',
       ],
@@ -384,29 +393,29 @@ export const MODULE_03_DATA_STORAGE = {
           stage: 'SOLUTION',
           title: 'Single-Leader scales reads — but watch Async Replication Lag',
           body: [
-            'All **WRITES** go to the **Leader (Primary)**; it streams WAL/binlog changes to **Read Replicas** which handle 90% of **READS**.',
-            '**Synchronous** replication guarantees zero data loss on leader crash, but slows writes if any replica stalls. **Asynchronous** replication is fast, but creates **Replication Lag**: Alice updates her avatar on the Leader, reloads from a lagging Replica 50 ms later, and sees her old avatar!',
+            'Writes go to the **leader**, which streams its log to replicas. A synchronous durability policy can require a standby to flush a commit before the leader acknowledges it. Failover preserves that commit if a surviving, sufficiently up-to-date standby is promoted.',
+            'A replica can receive a log entry before applying it. With asynchronous replication, a write may finish before the replica even receives it. Alice changes her avatar, reads 50 ms later from a lagging replica, and sees the previous version.',
           ],
           callout: {
             type: 'WATCH OUT',
-            text: 'Fix Read-Your-Writes anomalies by routing a user’s reads to the Leader for 5–10 seconds after their own edit (or tracking the user’s last-written LSN/timestamp and waiting on the replica).',
+            text: 'Return an acknowledged log position with the edit. Serve the next read from the authoritative leader or from a replica whose visible snapshot includes that position on the same log history. A fixed timer can expire while a replica is still behind.',
           },
           scene: {
             hud: [
               { label: 'WRITES', value: 'Leader Only', status: 'info' },
-              { label: 'READ SCALE', value: 'N× Replicas', status: 'good' },
-              { label: 'ASYNC LAG', value: '50 – 500 ms', status: 'warn' },
-              { label: 'SEMI-SYNC', value: '1 Sync + K Async', status: 'good' },
+              { label: 'READS', value: 'Leader or replica', status: 'info' },
+              { label: 'EXAMPLE LAG', value: '120 ms', status: 'warn' },
+              { label: 'WRITE POLICY', value: '1 standby flush', status: 'good' },
             ],
             nodes: [
               { id: 'app', type: 'hex', x: 120, y: 215, label: 'App Tier', sublabel: 'RW Split', tone: 'blue' },
               { id: 'lead', type: 'db', x: 380, y: 120, label: 'Leader DB', sublabel: 'Writes + RYW', tone: 'green', badge: 'primary', badgeTone: 'green', load: 42 },
-              { id: 'r1', type: 'db', x: 630, y: 120, label: 'Replica 1', sublabel: 'Semi-Sync (0ms)', tone: 'purple', badge: 'sync standby', badgeTone: 'blue' },
+              { id: 'r1', type: 'db', x: 630, y: 120, label: 'Replica 1', sublabel: 'Flushed to disk', tone: 'purple', badge: 'sync standby', badgeTone: 'blue' },
               { id: 'r2', type: 'db', x: 630, y: 310, label: 'Replica 2', sublabel: 'Async (120ms lag)', tone: 'amber', badge: 'lag: 120ms', badgeTone: 'amber' },
             ],
             edges: [
               { from: 'app', to: 'lead', label: 'WRITES', packetColor: 'green', speed: 1.6 },
-              { from: 'app', to: 'r2', label: 'READS (90%)', packetColor: 'blue', bidirectional: true, speed: 1.8 },
+              { from: 'app', to: 'r2', label: 'read', packetColor: 'blue', bidirectional: true, speed: 1.8 },
               { from: 'lead', to: 'r1', label: 'sync WAL', packetColor: 'purple', speed: 1.7 },
               { from: 'lead', to: 'r2', label: 'async WAL', packetColor: 'amber', dashed: true, speed: 2.8 },
             ],
@@ -420,14 +429,14 @@ export const MODULE_03_DATA_STORAGE = {
         {
           shortLabel: 'Leaderless W+R>N',
           stage: 'TECHNIQUE',
-          title: 'Leaderless Quorums (Dynamo / Cassandra): W + R > N',
+          title: 'When a read quorum intersects a write quorum',
           body: [
-            'In **Leaderless** databases (Cassandra, DynamoDB-style), any coordinator writes concurrently to `N = 3` replicas and succeeds once `W = 2` acknowledge. Readers query `R = 2` replicas and pick the freshest version.',
-            'Because **`W + R > N`** (`2 + 2 > 3`), the read quorum and write quorum are mathematically guaranteed to overlap by at least 1 up-to-date node! Stale nodes catch up via **Read Repair** and background **Merkle Tree Anti-Entropy**.',
+            'Keep the home replicas for a key fixed at A, B and C. A write of version 5 completes on A and B. A later read from A and C sees version 5 from A and the older version 4 from C. With a single ordered writer in this example the coordinator can return version 5 and repair C.',
+            'For the same fixed set of `N` replicas, two response sets of sizes `W` and `R` intersect in at least `max(0, W + R − N)` members. Concurrent writers also need a versioning and reconciliation policy. Intersection alone does not order them.',
           ],
           callout: {
             type: 'INTERVIEW SIGNAL',
-            text: 'Quorum (`W+R>N`) gives strong-ish overlap, NOT strict linearizability (concurrent writes + sloppy quorums/hinted handoff can still cause edge cases — test this live in our **Design Lab → Quorum & Raft Simulator**!).',
+            text: 'In the original Dynamo design a substitute host may accept a hinted write while a home replica is unavailable. A later read from home replicas can miss that write until handoff or repair. Which assumption in the intersection formula changed?',
           },
           scene: {
             hud: [
@@ -438,18 +447,18 @@ export const MODULE_03_DATA_STORAGE = {
             ],
             nodes: [
               { id: 'coord', type: 'hex', x: 145, y: 215, label: 'Coordinator', sublabel: 'W=2 · R=2', tone: 'green', badge: 'quorum met', badgeTone: 'green' },
-              { id: 'n1', type: 'db', x: 470, y: 85, label: 'Replica A', sublabel: 'v5 ✓', tone: 'green', badge: 'W + R overlap', badgeTone: 'green' },
-              { id: 'n2', type: 'db', x: 470, y: 215, label: 'Replica B', sublabel: 'v5 ✓', tone: 'blue' },
-              { id: 'n3', type: 'db', x: 470, y: 345, label: 'Replica C', sublabel: 'v4 (Down/Stale)', tone: 'coral', badge: 'read repair', badgeTone: 'amber', dim: true },
+              { id: 'n1', type: 'db', x: 470, y: 85, label: 'Replica A', sublabel: 'v5', tone: 'green', badge: 'W + R overlap', badgeTone: 'green' },
+              { id: 'n2', type: 'db', x: 470, y: 215, label: 'Replica B', sublabel: 'v5', tone: 'blue' },
+              { id: 'n3', type: 'db', x: 470, y: 345, label: 'Replica C', sublabel: 'v4', tone: 'amber', badge: 'stale read', badgeTone: 'amber' },
             ],
             edges: [
-              { from: 'coord', to: 'n1', label: 'ACK v5', packetColor: 'green', bidirectional: true, speed: 1.6 },
-              { from: 'coord', to: 'n2', label: 'ACK v5', packetColor: 'green', bidirectional: true, speed: 1.6 },
-              { from: 'coord', to: 'n3', label: 'timeout / async repair', packetColor: 'amber', dashed: true, speed: 3.1 },
+              { from: 'coord', to: 'n1', label: 'write + read v5', packetColor: 'green', bidirectional: true, speed: 1.6 },
+              { from: 'coord', to: 'n2', label: 'write v5', packetColor: 'green', bidirectional: true, speed: 1.6 },
+              { from: 'n3', to: 'coord', label: 'read v4', packetColor: 'amber', speed: 2.2 },
             ],
             legend: [
               { label: 'quorum ACK', tone: 'green' },
-              { label: 'hinted handoff / repair', tone: 'amber' },
+              { label: 'stale read response', tone: 'amber' },
             ],
           },
         },
@@ -727,6 +736,10 @@ export const MODULE_03_DATA_STORAGE = {
 
     {
       id: 'cap',
+      sources: [
+        { title: 'Seth Gilbert and Nancy Lynch, Perspectives on the CAP Theorem', url: 'https://groups.csail.mit.edu/tds/papers/Gilbert/Brewer2.pdf' },
+        { title: 'Daniel Abadi, Consistency Tradeoffs in Modern Distributed Database System Design', url: 'https://www.cs.umd.edu/~abadi/papers/abadi-pacelc.pdf' },
+      ],
       title: 'CAP & Consistency',
       subtitle: 'CAP Theorem, PACELC (Latency vs Consistency), Linearizability, Causal Consistency, Vector Clocks & CRDTs.',
       duration: '10 min',
@@ -734,7 +747,7 @@ export const MODULE_03_DATA_STORAGE = {
       companies: ['Google', 'Amazon', 'Microsoft', 'Meta'],
       tags: ['cap theorem', 'pacelc', 'linearizability', 'eventual consistency', 'causal', 'crdt', 'vector clocks'],
       objectives: [
-        'Explain CAP cleanly: P is unavoidable, so during a partition choose CP vs AP',
+        'Explain what a partition means for a specific operation',
         'Apply PACELC to reason about Latency vs Consistency during normal operation',
         'Compare Linearizable, Causal, and Eventual consistency + CRDTs',
       ],
@@ -742,21 +755,21 @@ export const MODULE_03_DATA_STORAGE = {
         {
           shortLabel: 'CAP & PACELC',
           stage: 'INSIGHT',
-          title: 'Partitions ALWAYS happen — PACELC completes the picture',
+          title: 'What can an isolated replica promise to a reader?',
           body: [
-            '**CAP Theorem**: In a distributed system, network partitions (**P**) are inevitable (cut fiber, switch failure, GC pause). During a partition, you must choose either **CP** (reject writes/reads on the minority side to guarantee fresh consistent data — e.g., etcd, Spanner, banking ledgers) or **AP** (keep accepting reads/writes on both sides even if temporarily stale — e.g., DNS, DynamoDB, shopping carts).',
-            '**PACELC** goes further: *If Partition (P), choose A or C; **Else (E, normal operation)**, choose **Latency (L) or Consistency (C)**!* Replicating synchronously across regions adds latency even with zero outages.',
+            'A write completes on one side of a network split. An isolated replica cannot tell whether that write occurred. If it must answer every read successfully while the split persists, its local answer can violate **linearizability**. If it waits for evidence, that read can remain unavailable.',
+            '**PACELC** also asks about normal operation. A write that requires an acknowledgment from another region pays for the network round trip even when every link is healthy. State the placement and the contract for the operation you are designing.',
           ],
           callout: {
             type: 'INTERVIEW SIGNAL',
-            text: 'Quoting PACELC shows Staff-level maturity: "Even without network partitions, strong cross-region consistency costs 80 ms of extra write latency (PC/EC vs PA/EL)."',
+            text: 'An inventory service can offer a stale browse page and still require a conditional write at the authoritative store to reserve an item. Describe the failure behavior of each endpoint.',
           },
           scene: {
             hud: [
               { label: 'ON PARTITION', value: 'CP vs AP', status: 'warn' },
               { label: 'NORMAL OPS', value: 'Latency vs Cons.', status: 'info' },
-              { label: 'CP EXAMPLES', value: 'Spanner · etcd', status: 'info' },
-              { label: 'AP EXAMPLES', value: 'Cassandra · DNS', status: 'good' },
+              { label: 'RESERVATION', value: 'Wait or reject', status: 'info' },
+              { label: 'BROWSE', value: 'Stale read allowed', status: 'good' },
             ],
             nodes: [
               { id: 'us', type: 'db', x: 185, y: 155, label: 'US-East Cluster', sublabel: 'Majority (2/3)', tone: 'green', badge: 'CP: active', badgeTone: 'green' },
@@ -764,7 +777,7 @@ export const MODULE_03_DATA_STORAGE = {
               { id: 'cut', type: 'hex', x: 380, y: 315, label: 'Network Split', sublabel: 'Fiber Cut (P)', tone: 'amber' },
             ],
             edges: [
-              { from: 'us', to: 'eu', label: '✕ PARTITIONED', packetColor: 'coral', dashed: true, speed: 3.5 },
+              { from: 'us', to: 'eu', label: '✕ PARTITIONED', packetColor: 'coral', dashed: true, packetCount: 0 },
               { from: 'cut', to: 'us', label: 'CP serves', packetColor: 'green', speed: 2.0 },
               { from: 'cut', to: 'eu', label: 'AP serves stale', packetColor: 'amber', dashed: true, speed: 2.4 },
             ],
@@ -777,32 +790,29 @@ export const MODULE_03_DATA_STORAGE = {
         {
           shortLabel: 'Spectrum & CRDTs',
           stage: 'TECHNIQUE',
-          title: 'Linearizability → Causal Consistency → CRDTs',
+          title: 'Choose a visibility guarantee and a merge rule',
           body: [
-            '**Linearizability** (strongest) behaves as if only 1 copy of data exists globally. **Causal Consistency** guarantees cause precedes effect (you never see a reply before the comment it replied to!).',
-            'For collaborative apps (Google Docs, Figma, multi-region counters), **CRDTs (Conflict-Free Replicated Data Types)** let replicas accept concurrent offline edits and mathematically **merge to the exact same state** without central locks.',
+            '**Linearizability** makes operations on an object appear to take effect in an order that respects real time. **Causal consistency** preserves dependencies. A reader who sees a reply can also see the comment that the reply depended on, while unrelated writes can be observed in different orders.',
+            'A **conflict-free replicated data type** defines operations and a merge or delivery protocol that make replicas converge when they receive the same updates. A grow-only counter is one example. Its merge rule and the freshness of a read are separate design choices.',
           ],
           callout: {
             type: 'KEY IDEA',
-            text: 'Use Strong Consistency (Linearizability) for money, inventory, and seat locks; use Causal/Eventual + CRDTs for likes, presence, and collaborative editing.',
+            text: 'To sell a unique seat, reserve it with a conditional operation on its authoritative record. To transfer money across accounts, also define how both balance updates commit atomically and which isolation level maintains the invariant.',
           },
           scene: {
             hud: [
-              { label: 'STRONGEST', value: 'Linearizable', status: 'info' },
-              { label: 'SWEET SPOT', value: 'Causal', status: 'good' },
-              { label: 'FASTEST', value: 'Eventual', status: 'good' },
-              { label: 'CONFLICT FREE', value: 'CRDT Merge', status: 'good' },
+              { label: 'REAL-TIME ORDER', value: 'Linearizable', status: 'info' },
+              { label: 'DEPENDENCIES', value: 'Causal', status: 'info' },
+              { label: 'AFTER PROPAGATION', value: 'Convergence', status: 'good' },
+              { label: 'MERGE EXAMPLE', value: 'CRDT counter', status: 'good' },
             ],
             nodes: [
-              { id: 'lin', type: 'hex', x: 135, y: 215, label: 'Linearizable', sublabel: 'Money · Locks', tone: 'purple' },
+              { id: 'lin', type: 'hex', x: 135, y: 215, label: 'Linearizable', sublabel: 'Conditional seat claim', tone: 'purple' },
               { id: 'cau', type: 'hex', x: 380, y: 215, label: 'Causal', sublabel: 'Feeds · Comments', tone: 'blue' },
               { id: 'crdt', type: 'hex', x: 625, y: 215, label: 'Eventual + CRDT', sublabel: 'Docs · Counters', tone: 'green', badge: 'converges!', badgeTone: 'green' },
             ],
-            edges: [
-              { from: 'lin', to: 'cau', label: 'lower latency →', packetColor: 'blue', speed: 2.0 },
-              { from: 'cau', to: 'crdt', label: 'offline-ready →', packetColor: 'green', speed: 2.0 },
-            ],
-            legend: [{ label: 'consistency vs latency trade-off', tone: 'green' }],
+            edges: [],
+            legend: [{ label: 'Exclusive claim', tone: 'purple' }, { label: 'Dependent reads', tone: 'blue' }, { label: 'Mergeable updates', tone: 'green' }],
           },
         },
       ],
@@ -810,6 +820,7 @@ export const MODULE_03_DATA_STORAGE = {
 
     {
       id: 'consensus',
+      sources: [{ title: 'Diego Ongaro and John Ousterhout, Raft leader election and safety', url: 'https://raft.github.io/raft.pdf' }],
       title: 'Consensus & Leaders',
       subtitle: 'Preventing Split-Brain with Raft Leader Election, Log Replication, Quorums, and Fencing Tokens.',
       duration: '10 min',
@@ -817,7 +828,7 @@ export const MODULE_03_DATA_STORAGE = {
       companies: ['Google', 'Microsoft', 'Amazon', 'Cloudflare'],
       tags: ['raft', 'paxos', 'etcd', 'zookeeper', 'split-brain', 'fencing token', 'distributed lock'],
       objectives: [
-        'Explain why Split-Brain corrupts data and why odd clusters (3 or 5) are required',
+        'Calculate the number of reachable voters required for a majority',
         'Step through Raft Leader Election (Terms, Randomized Timeouts, Majority Votes)',
         'Use monotonic Fencing Tokens to make distributed locks safe across GC pauses',
       ],
@@ -825,14 +836,14 @@ export const MODULE_03_DATA_STORAGE = {
         {
           shortLabel: 'Raft Election',
           stage: 'SOLUTION',
-          title: 'Raft elects 1 unambiguous Leader per Term via majority vote',
+          title: 'A Raft term can have at most one elected leader',
           body: [
-            'In a **5-node Raft cluster** (used by Kubernetes **etcd**, CockroachDB, TiKV), one **Leader** sends periodic heartbeats. If heartbeats stop, a follower’s **randomized election timeout** (150–300 ms) expires first, increments `Term`, becomes **Candidate**, and requests votes.',
-            'Because a leader needs **`⌊N/2⌋ + 1` (3 of 5) votes**, two split-brain partitions can NEVER simultaneously elect two leaders in the same Term!',
+            'In a **5-voter Raft group**, the leader sends heartbeats. When a follower’s randomized election timer expires, it increments its term, becomes a candidate and requests votes. A voter checks the candidate’s log before granting its vote.',
+            'A voter grants at most one vote per term. Any two majorities share at least one voter, so only one candidate can win in a term. A split vote can leave a term without a leader until a later election succeeds.',
           ],
           callout: {
             type: 'KEY IDEA',
-            text: 'Always deploy **odd numbers of consensus nodes**: 3 nodes tolerate 1 failure; 5 nodes tolerate 2 failures. Deploying 4 nodes gives the SAME fault tolerance (1 failure) as 3 nodes with extra latency!',
+            text: 'A stable four-voter configuration is valid and requires three votes. Three voters require two. Both tolerate one unavailable voter, which explains why three is a common choice. Five voters tolerate two unavailable voters when the remaining three can communicate.',
           },
           scene: {
             hud: [
@@ -866,11 +877,11 @@ export const MODULE_03_DATA_STORAGE = {
           title: 'Why Redis locks alone fail — and how Fencing Tokens save you',
           body: [
             'Suppose Worker A grabs a 10-second lock, then freezes for 15 seconds due to a JVM **GC pause**. The lock expires and Worker B acquires it. Then Worker A wakes up and blindly overwrites the storage file!',
-            '**Fix — Monotonic Fencing Tokens** (Martin Kleppmann’s rule): etcd/ZooKeeper issues a strictly increasing number (`token = 33` for A, `token = 34` for B). The storage server rejects any write carrying a token `< 34`!',
+            'Issue a strictly increasing **fencing token** with each grant. A holds 33 and B holds 34. Once storage accepts B’s write and records 34, it rejects A’s delayed write with 33. Storage must atomically check the recorded maximum and apply each write.',
           ],
           callout: {
             type: 'INTERVIEW SIGNAL',
-            text: 'Explaining GC-pause lock expiry + Monotonic Fencing Tokens when asked about distributed locking is pure Staff/Principal (L63–L65) gold.',
+            text: 'What happens if storage crashes and forgets its highest token? Persist the fencing state with the protected resource so recovery can still reject an older grant.',
           },
           scene: {
             hud: [

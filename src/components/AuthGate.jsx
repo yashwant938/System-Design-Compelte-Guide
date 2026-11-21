@@ -61,7 +61,7 @@ export function OneTimeLoginModal({ onLogin, onRestoreSync }) {
             System <span className="term-highlight">Design</span> Study Atlas
           </h1>
           <p className="text-xs font-mono text-ink-muted dark:text-paper-ink/75">
-            Set your study name once to track completed lessons (0 / 100), bookmarks, your 60-day plan, and 100-Q exam scores. Saved automatically — never asked again on this browser.
+            Choose a study name to save your place, bookmarks, design reviews, and quiz scores on this browser.
           </p>
         </div>
 
@@ -95,10 +95,11 @@ export function OneTimeLoginModal({ onLogin, onRestoreSync }) {
           {mode === 'setup' ? (
             <>
               <div className="space-y-1">
-                <label className="block text-[11px] font-mono font-bold uppercase text-ink-muted">
+                <label htmlFor="study-name" className="block text-[11px] font-mono font-bold uppercase text-ink-muted">
                   Your Study Name / Nickname
                 </label>
                 <input
+                  id="study-name"
                   type="text"
                   autoComplete="off"
                   autoFocus
@@ -133,10 +134,11 @@ export function OneTimeLoginModal({ onLogin, onRestoreSync }) {
             </>
           ) : (
             <div className="space-y-1.5">
-              <label className="block text-[11px] font-mono font-bold uppercase text-ink-muted">
+              <label htmlFor="restore-code" className="block text-[11px] font-mono font-bold uppercase text-ink-muted">
                 Paste Progress Sync Code
               </label>
               <textarea
+                id="restore-code"
                 rows={4}
                 value={syncInput}
                 onChange={(e) => setSyncInput(e.target.value)}

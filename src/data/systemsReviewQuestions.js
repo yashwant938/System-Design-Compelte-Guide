@@ -1,0 +1,98 @@
+export const SYSTEMS_REVIEW_QUESTIONS = [
+  {
+    id: 'q101', lessonId: 'logical-clocks', domain: 'Distributed Correctness', difficulty: 'Medium',
+    q: 'Two writers publish versions [3, 1] and [2, 4] using the same two-component vector clock. What can a replica infer?',
+    options: ['The larger sum identifies the newer version.', 'The first writer supersedes the second.', 'The versions are concurrent.', 'Both represent the same event.'],
+    answer: 2, explanation: 'The first vector is greater in component one and smaller in component two. Neither includes the full history of the other. The application needs a merge or conflict policy.',
+  },
+  {
+    id: 'q102', lessonId: 'session-guarantees', domain: 'Distributed Correctness', difficulty: 'Medium',
+    q: 'A session has observed position 94 in a partition log. After a reconnect, the nearest replica has applied position 90 of that log. Which read policy preserves monotonic reads?',
+    options: ['Serve any healthy replica.', 'Serve an eligible replica at 94 or later, or wait within the deadline.', 'Wait exactly one network round trip.', 'Replace the log position with the current wall clock.'],
+    answer: 1, explanation: 'The session must carry its observed floor across reconnections. A snapshot including position 94 preserves its history. An elapsed delay alone gives no evidence of replay progress.',
+  },
+  {
+    id: 'q103', lessonId: 'concurrent-updates', domain: 'Distributed Correctness', difficulty: 'Medium',
+    q: 'A grow-only counter has one component per writer. A replica holds [5, 1] and twice receives state [3, 4]. What is the converged total?',
+    options: ['6', '7', '13', '9'], answer: 3,
+    explanation: 'Take the maximum of each component to obtain [5, 4]. Its sum is 9. Receiving the same state twice leaves both maxima unchanged.',
+  },
+  {
+    id: 'q104', lessonId: 'atomic-commit', domain: 'Distributed Correctness', difficulty: 'Hard',
+    q: 'A two-phase commit participant has durably voted yes. Its coordinator disappears before the participant learns the decision. What preserves atomicity?',
+    options: ['Keep the prepared state and obtain the durable decision through recovery.', 'Abort when the local request timer fires.', 'Commit because the local vote succeeded.', 'Start a new transaction ID and commit both attempts.'],
+    answer: 0, explanation: 'Another participant may already have received the commit decision. Local timeout cannot distinguish that execution from an undecided transaction. Prepared participants may have to wait.',
+  },
+  {
+    id: 'q105', lessonId: 'schema-evolution', domain: 'Distributed Correctness', difficulty: 'Medium',
+    q: 'An Avro reader adds a required field with no default. A live producer sends it, but last year’s retained records omit it. What will a full replay reveal?',
+    options: ['Avro fills all missing fields with zero.', 'The broker updates old records on read.', 'Resolution fails for the old writer schema.', 'Compaction adds the missing field.'],
+    answer: 2, explanation: 'Resolving a reader field absent from the writer schema requires a suitable reader default. Test against every retained writer version used in replay and migrate old records or provide compatible defaults.',
+  },
+  {
+    id: 'q106', lessonId: 'online-resharding', domain: 'Distributed Correctness', difficulty: 'Hard',
+    q: 'After copying a shard, the destination is 600,000 changes behind. The source adds 2,000/s and replay sustains 3,000/s. At fixed rates, when can replay catch up?',
+    options: ['200 s', '600 s', '300 s', 'It cannot catch up.'], answer: 1,
+    explanation: 'Only 1,000 changes/s reduce the backlog after new writes are accounted for. The copy catches up in 600 seconds. Cutover still needs a fenced source and a verified final position.',
+  },
+  {
+    id: 'q107', lessonId: 'replica-repair', domain: 'Distributed Correctness', difficulty: 'Hard',
+    q: 'One replica misses a deletion. All other replicas later purge its tombstone. What can happen when the stale replica rejoins?',
+    options: ['The record is guaranteed to disappear on contact.', 'The data becomes read-only.', 'Every replica automatically rebuilds.', 'Repair may reintroduce the old value.'],
+    answer: 3, explanation: 'Once the marker is gone, repair may treat the stale live value as data absent from peers. Bound replica outages and complete repairs during the deletion-marker retention window.',
+  },
+  {
+    id: 'q108', lessonId: 'queue-backlog-recovery', domain: 'Production Engineering', difficulty: 'Medium',
+    q: 'A queue has 36,000 jobs and accepts 300/s. Workers can process 700/s, but the destination acknowledges only 500/s. How long will it take to clear?',
+    options: ['180 s', '90 s', '72 s', '120 s'], answer: 0,
+    explanation: 'Successful completions are capped at 500/s. The spare rate is 200/s, giving 36,000 ÷ 200 = 180 seconds. Scaling workers alone leaves the downstream limit unchanged.',
+  },
+  {
+    id: 'q109', lessonId: 'point-in-time-restore', domain: 'Production Engineering', difficulty: 'Medium',
+    q: 'A service fails at 10:00. A drill restores writes through 09:57, finishes replay at 10:21, and returns verified service at 10:31. What recovery did it demonstrate?',
+    options: ['21-minute outage and zero data exposure', '31-minute outage and a 3-minute recovery-point gap', '3-minute outage and 31-minute recovery-point gap', '24-minute outage and zero data exposure'],
+    answer: 1, explanation: 'Recovery time includes verification and routing. The latest restored position precedes interruption by three minutes. Determine which acknowledged writes in that interval need reconciliation.',
+  },
+  {
+    id: 'q110', lessonId: 'slo-incident-response', domain: 'Production Engineering', difficulty: 'Medium',
+    q: 'A request-based availability target is 99.9%. In a five-minute window, 2% of eligible requests fail. What is the burn rate in that window?',
+    options: ['0.2×', '2×', '20×', '200×'], answer: 2,
+    explanation: 'The allowed bad-event fraction is 0.1%. Dividing the observed 2% by 0.1% gives 20×. Requests over the full compliance period determine how much budget has actually been consumed.',
+  },
+  {
+    id: 'q111', lessonId: 'canary-analysis', domain: 'Production Engineering', difficulty: 'Medium',
+    q: 'A release canary serves two requests on a rare checkout path and both succeed. Aggregate fleet errors remain low. What evidence should gate promotion?',
+    options: ['The time since deployment alone', 'Fleet-wide CPU averaged over a day', 'Any successful health check', 'Representative path-specific samples compared with a concurrent control'],
+    answer: 3, explanation: 'Two successes leave substantial uncertainty about the failure rate. Hold the rollout until the path has enough comparable traffic, or exercise it safely with a representative workload.',
+  },
+  {
+    id: 'q112', lessonId: 'capacity-unit-economics', domain: 'Production Engineering', difficulty: 'Hard',
+    q: 'Three equal zones serve 18,000 requests/s at peak. Each worker can sustain 500/s at the latency target. With even rebalancing, what minimum whole number of workers per zone survives losing one zone?',
+    options: ['18', '12', '36', '9'], answer: 0,
+    explanation: 'The two surviving zones together need 36 workers, so provision at least 18 in each of the three zones. This assumes tested per-worker capacity, balanced routing and sufficient downstream capacity.',
+  },
+  {
+    id: 'q113', lessonId: 'warehouse-fact-grain', domain: 'Data Platforms', difficulty: 'Medium',
+    q: 'One order contains three sale lines totalling $90 and two payments totalling $90. Joining both tables on order ID yields six rows. How should the order-level report compare the two amounts?',
+    options: ['Sum each column across the six joined rows.', 'Sum distinct dollar amounts.', 'Aggregate each table to one row per order, then join.', 'Select the largest line and largest payment.'],
+    answer: 2, explanation: 'Each line appears once per payment, and each payment once per line. Separate order-level totals preserve both measures. Distinct dollar amounts would collapse legitimate equal-valued rows.',
+  },
+  {
+    id: 'q114', lessonId: 'event-time-windows', domain: 'Data Platforms', difficulty: 'Medium',
+    q: 'A purchase at 09:58 arrives at 10:03. The window [09:50, 10:00) has already emitted an on-time result. The policy accepts this late arrival and emits corrected totals. What should the dashboard do?',
+    options: ['Apply the corrected total to the original window using its key and revision.', 'Assign the purchase to the 10:00 window.', 'Add the entire corrected total to the old total.', 'Discard every update after the first publication.'],
+    answer: 0, explanation: 'Event time places the purchase in the earlier window. A revised total replaces the old value for that key. Adding a full replacement as a delta would double-count earlier purchases.',
+  },
+  {
+    id: 'q115', lessonId: 'deletion-across-derived-data', domain: 'Data Platforms', difficulty: 'Hard',
+    q: 'A restored search index contains profile P. The current deletion ledger says P was removed after the snapshot. What should happen before the index receives live queries?',
+    options: ['Clear the ledger to match the snapshot.', 'Serve the snapshot until the next nightly build.', 'Use a longer cache TTL.', 'Replay applicable deletions into the isolated index and verify the result.'],
+    answer: 3, explanation: 'A restore can reintroduce earlier data. Reconcile the restored generation with the current deletion history and validate affected lookups before routing users to it.',
+  },
+  {
+    id: 'q116', lessonId: 'point-in-time-features', domain: 'Data Platforms', difficulty: 'Hard',
+    q: 'A prediction was served at 12:00. A feature event occurred at 11:55 but only became available online at 12:04. How should a training replay reconstruct that prediction?',
+    options: ['Include the event because its occurrence time precedes noon.', 'Use the latest eligible value available by noon or the serving default.', 'Fill the value from the eventual label.', 'Use today’s feature value for all historical rows.'],
+    answer: 1, explanation: 'Reconstruction needs both event time and availability at the decision. Including a late backfill that the serving system could not access makes training inputs unrealistically informative.',
+  },
+];

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import Navbar from './components/Navbar.jsx';
 import Sidebar from './components/Sidebar.jsx';
+import CourseMap from './components/CourseMap.jsx';
 import LearnView from './components/LearnView.jsx';
 import DesignLabView from './components/DesignLabView.jsx';
 import PracticeView from './components/PracticeView.jsx';
@@ -21,10 +22,10 @@ import {
 
 function parseHash() {
   const raw = window.location.hash.replace(/^#\/?/, '').trim();
-  if (!raw) return { tab: 'learn', lessonId: 'cdn', step: 1, subId: null };
+  if (!raw || raw === 'learn') return { tab: 'learn', lessonId: null, step: 1, subId: null };
   const parts = raw.split('/').filter(Boolean);
   if (parts[0] === 'lab' || parts[0] === 'practice' || parts[0] === 'cheatsheets') {
-    return { tab: parts[0], lessonId: 'cdn', step: 1, subId: parts[1] || null };
+    return { tab: parts[0], lessonId: null, step: 1, subId: parts.slice(1).join('/') || null };
   }
   const lessonId = parts[0];
   const step = Math.max(1, parseInt(parts[1] || '1', 10) || 1);
@@ -33,7 +34,7 @@ function parseHash() {
 
 export default function App() {
   const [user, setUser] = useState(() => loadUserSession());
-  const [progress, setProgress] = useState(() => loadProgress(loadUserSession()?.handle || loadUserSession()?.email));
+  const [progress, setProgress] = useState(() => loadProgress(user?.handle || user?.email));
   const [route, setRoute] = useState(() => parseHash());
   const [searchOpen, setSearchOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -61,11 +62,14 @@ export default function App() {
 
   // Persist per-account progress cleanly whenever it updates
   useEffect(() => {
-    saveProgress(progress, user?.handle || user?.email);
+    if (user) saveProgress(progress, user.handle || user.email);
   }, [progress, user?.handle, user?.email]);
 
   useEffect(() => {
-    const onHashChange = () => setRoute(parseHash());
+    const onHashChange = () => {
+      setRoute(parseHash());
+      window.scrollTo(0, 0);
+    };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
@@ -83,8 +87,17 @@ export default function App() {
 
   const allLessons = useMemo(() => getAllLessons(), []);
   const activeEntry = useMemo(() => {
-    return findLessonById(route.lessonId) || findLessonById('cdn') || allLessons[0] || null;
-  }, [route.lessonId, allLessons]);
+    return route.lessonId ? findLessonById(route.lessonId) : null;
+  }, [route.lessonId]);
+
+  useEffect(() => {
+    if (!user || !activeEntry) return;
+    const step = Math.min(route.step, activeEntry.lesson.steps.length);
+    setProgress((prev) => {
+      if (prev.lastVisited?.itemId === activeEntry.lesson.id && prev.lastVisited.step === step) return prev;
+      return { ...prev, lastVisited: { tab: 'learn', itemId: activeEntry.lesson.id, step } };
+    });
+  }, [user, activeEntry, route.step]);
 
   const handleLogin = useCallback(
     (userInput) => {
@@ -115,27 +128,18 @@ export default function App() {
   const handleSignOut = useCallback(() => {
     clearUserSession();
     setUser(null);
+    setProgress(loadProgress());
   }, []);
 
   const navigateLesson = useCallback((lessonId, step = 1) => {
     window.location.hash = `#/${lessonId}/${step}`;
-    setRoute({ tab: 'learn', lessonId, step, subId: null });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   const navigateTab = useCallback(
     (tab, subId = null) => {
-      if (tab === 'learn') {
-        const targetId = activeEntry?.lesson?.id || 'cdn';
-        window.location.hash = `#/${targetId}/${route.step || 1}`;
-        setRoute({ tab: 'learn', lessonId: targetId, step: route.step || 1, subId: null });
-      } else {
-        window.location.hash = subId ? `#/${tab}/${subId}` : `#/${tab}`;
-        setRoute((prev) => ({ ...prev, tab, subId }));
-      }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.location.hash = subId ? `#/${tab}/${subId}` : `#/${tab}`;
     },
-    [activeEntry, route.step]
+    []
   );
 
   const handleToggleComplete = useCallback(
@@ -201,6 +205,10 @@ export default function App() {
     }));
   }, []);
 
+  const handleDesignReviewsChange = useCallback((update) => {
+    setProgress((prev) => ({ ...prev, designReviews: update(prev.designReviews) }));
+  }, []);
+
   const handleToggleSidebar = useCallback(() => {
     if (window.innerWidth >= 1280) {
       setDesktopSidebarCollapsed((v) => !v);
@@ -237,7 +245,9 @@ export default function App() {
       { id: 'lab:quorum', kind: 'lab', subId: 'quorum', title: 'Quorum (W+R>N) & 5-Node Raft Lab', subtitle: 'Kill nodes and test Raft majority elections', category: 'Design Lab' },
       { id: 'lab:capacity', kind: 'lab', subId: 'capacity', title: 'Back-of-the-Envelope Napkin Math Estimator', subtitle: 'QPS, 5-year TB, Gbps, Cache RAM & Shards', category: 'Design Lab' },
       { id: 'lab:lld', kind: 'lab', subId: 'lld', title: 'LLD Seat Lock Race & Elevator LOOK Lab', subtitle: 'BookMyShow concurrency + 3-car LOOK dispatcher', category: 'Design Lab' },
-      { id: 'practice:exam', kind: 'practice', title: '100-Question Staff HLD, In-The-Wild & LLD Mock Exam', subtitle: 'Microsoft, Google, Amazon & Meta rubrics + 60-Day Plan', category: 'Practice War Room' },
+      { id: 'lab:backlog', kind: 'lab', subId: 'backlog', title: 'Queue backlog recovery lab', subtitle: 'Worker downtime, processing rate and drain time', category: 'Design Lab' },
+      { id: 'practice:exam', kind: 'practice', title: 'System design mock exam', subtitle: 'Practice by domain with worked explanations', category: 'Practice' },
+      { id: 'practice:reviews', kind: 'practice', subId: 'reviews', title: 'Design review capstones', subtitle: 'Write and review an end-to-end system design', category: 'Practice' },
       { id: 'cheatsheets:all', kind: 'cheatsheet', title: 'Visual Cheatsheets & Decision Matrices', subtitle: 'Latency ladder, Powers of 2, 45m blueprints & 23 GoF grid', category: 'Cheatsheets' },
     ];
 
@@ -252,7 +262,7 @@ export default function App() {
         isDark={isDark}
         onToggleTheme={handleToggleTheme}
         onOpenSearch={() => setSearchOpen(true)}
-        onToggleSidebar={handleToggleSidebar}
+        onToggleSidebar={activeEntry ? handleToggleSidebar : undefined}
         completedCount={progress.completedIds.length}
         totalLessons={allLessons.length}
         user={user}
@@ -260,7 +270,7 @@ export default function App() {
       />
 
       <div className="flex flex-1 min-h-0">
-        {route.tab === 'learn' && (
+        {route.tab === 'learn' && activeEntry && (
           <Sidebar
             modules={CURRICULUM_MODULES}
             activeLessonId={activeEntry?.lesson?.id}
@@ -274,6 +284,12 @@ export default function App() {
         )}
 
         <main className="flex-1 min-w-0">
+          {route.tab === 'learn' && !activeEntry && (
+            <>
+              {route.lessonId && <p role="status" className="mx-auto max-w-6xl px-4 pt-4 text-sm">This lesson link could not be found. Choose a lesson below.</p>}
+              <CourseMap progress={progress} totalLessons={allLessons.length} />
+            </>
+          )}
           {route.tab === 'learn' && activeEntry && (
             <LearnView
               lesson={activeEntry.lesson}
@@ -289,6 +305,7 @@ export default function App() {
               isBookmarked={progress.bookmarkedIds.includes(activeEntry.lesson.id)}
               onToggleBookmark={handleToggleBookmark}
               isDark={isDark}
+              shortcutsEnabled={Boolean(user) && !searchOpen && !profileOpen && !mobileSidebarOpen}
               extraBottomSlot={
                 activeEntry.lesson.widget === 'solid-comparator' ? (
                   <SolidComparatorWidget />
@@ -299,10 +316,14 @@ export default function App() {
             />
           )}
 
-          {route.tab === 'lab' && <DesignLabView key={route.subId || 'default'} initialLabId={route.subId} />}
+          {route.tab === 'lab' && <DesignLabView initialLabId={route.subId} onSelectLab={(id) => navigateTab('lab', id)} />}
 
           {route.tab === 'practice' && (
             <PracticeView
+              sectionId={route.subId}
+              onSelectSection={(id) => navigateTab('practice', id)}
+              designReviews={progress.designReviews}
+              onChangeDesignReviews={handleDesignReviewsChange}
               roadmapChecked={progress.roadmapChecked}
               onToggleRoadmap={handleToggleRoadmap}
               onSaveQuizScore={handleSaveQuizScore}
@@ -348,7 +369,7 @@ export default function App() {
         onSelect={(item) => {
           if (item.kind === 'lesson') navigateLesson(item.lessonId, 1);
           else if (item.kind === 'lab') navigateTab('lab', item.subId);
-          else if (item.kind === 'practice') navigateTab('practice');
+          else if (item.kind === 'practice') navigateTab('practice', item.subId);
           else if (item.kind === 'cheatsheet') navigateTab('cheatsheets');
         }}
       />

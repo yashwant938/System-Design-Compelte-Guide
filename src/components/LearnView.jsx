@@ -67,6 +67,7 @@ export default function LearnView({
   isBookmarked,
   onToggleBookmark,
   isDark,
+  shortcutsEnabled,
   extraBottomSlot,
 }) {
   const [paused, setPaused] = useState(false);
@@ -88,9 +89,10 @@ export default function LearnView({
 
   // Keyboard shortcuts: Left/Right arrows step, R replay, Space pause
   useEffect(() => {
+    if (!shortcutsEnabled) return;
     const onKey = (e) => {
-      const tag = e.target?.tagName?.toLowerCase();
-      if (tag === 'input' || tag === 'textarea' || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.defaultPrevented || e.target?.closest?.('input, textarea, select, [contenteditable="true"]') || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === ' ' && e.target?.closest?.('button, a, summary')) return;
 
       if (e.key === 'ArrowRight') {
         e.preventDefault();
@@ -116,7 +118,7 @@ export default function LearnView({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [safeStepIdx, steps.length, onChangeStep, nextLesson, prevLesson, onSelectLesson]);
+  }, [shortcutsEnabled, safeStepIdx, steps.length, onChangeStep, nextLesson, prevLesson, onSelectLesson]);
 
   if (!lesson || !currentStep) return null;
 
@@ -152,6 +154,7 @@ export default function LearnView({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1.5 min-w-0">
                 <div className="text-[11px] font-mono text-ink-muted dark:text-paper-ink/65">
+                  <a href="#/learn" className="underline underline-offset-2">Course map</a> /{' '}
                   {moduleMeta?.number}. {moduleMeta?.title} / Lesson {lessonIndexInModule + 1} of{' '}
                   {moduleMeta?.lessons?.length || 1}
                   {lesson.companies?.length ? (
@@ -169,7 +172,7 @@ export default function LearnView({
               </div>
 
               {/* Badges + Mark Complete + Bookmark */}
-              <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+              <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
                 <span className="inline-flex items-center gap-1 rounded-full border border-ink/50 bg-sand px-2.5 py-1 text-[11px] font-mono font-semibold text-ink dark:border-sand/40 dark:bg-sand-dark dark:text-[#F5CF87]">
                   <Clock className="h-3 w-3" />
                   {lesson.duration}
@@ -400,6 +403,17 @@ export default function LearnView({
               </div>
             </section>
           )}
+          {lesson.sources?.length > 0 && (
+            <section className="notebook-card space-y-2 p-4 sm:p-5">
+              <h2 className="font-display font-bold">Primary sources</h2>
+              <ul className="list-disc space-y-1 pl-5 text-sm">
+                {lesson.sources.map(({ title, url }) => (
+                  <li key={url}><a className="underline underline-offset-2" href={url}>{title}</a></li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {lesson.id === 'queue-backlog-recovery' && <a href="#/lab/backlog" className="notebook-btn">Open the queue recovery lab <ArrowRight className="h-4 w-4" /></a>}
         </div>
 
         {/* RIGHT NARRATIVE & OBJECTIVES COLUMN (4 cols on lg+) */}

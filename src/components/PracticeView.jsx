@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Award,
   Building2,
   CalendarCheck,
   Check,
   CheckCircle2,
+  ClipboardList,
   RotateCcw,
   Target,
   XCircle,
@@ -14,15 +15,21 @@ import {
   QUIZ_BANK,
   ROADMAP_60_DAYS,
 } from '../data/practiceAndCheatsheets.js';
+import DesignReviews from './DesignReviews.jsx';
+
+const domainRoute = (name) => name === 'All' ? 'quiz' : 'quiz/' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
 export default function PracticeView({
+  sectionId,
+  onSelectSection,
+  designReviews,
+  onChangeDesignReviews,
   roadmapChecked,
   onToggleRoadmap,
   onSaveQuizScore,
   quizHistory,
 }) {
-  const [section, setSection] = useState('quiz'); // 'quiz' | 'rubrics' | 'roadmap'
-  const [domainFilter, setDomainFilter] = useState('All');
+  const section = ['reviews', 'rubrics', 'roadmap'].includes(sectionId) ? sectionId : 'quiz';
   const [qIndex, setQIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
@@ -31,6 +38,11 @@ export default function PracticeView({
     () => ['All', ...Array.from(new Set(QUIZ_BANK.map((q) => q.domain)))],
     []
   );
+  const domainFilter = domains.find((name) => domainRoute(name) === sectionId) || 'All';
+  useEffect(() => {
+    setQIndex(0);
+    setSubmitted(false);
+  }, [domainFilter]);
 
   const activeQuestions = useMemo(() => {
     if (domainFilter === 'All') return QUIZ_BANK;
@@ -92,7 +104,7 @@ export default function PracticeView({
               Interview <span className="term-highlight">Practice</span> &amp; Rubrics
             </h1>
             <p className="text-xs sm:text-[13px] font-mono text-ink-muted dark:text-paper-ink/75 mt-1 max-w-2xl">
-              Drill {QUIZ_BANK.length} Staff-level HLD, In-The-Wild &amp; LLD scenario questions, inspect exact Big Tech hiring rubrics, and track your 60-day mastery roadmap.
+              Test yourself on {QUIZ_BANK.length} questions, write a design review, or follow the 60-day study plan.
             </p>
           </div>
           {quizHistory?.length > 0 && (
@@ -105,6 +117,7 @@ export default function PracticeView({
         <div className="flex flex-wrap gap-2">
           {[
             { id: 'quiz', label: `${QUIZ_BANK.length}-Q Staff Mock Exam`, icon: Target },
+            { id: 'reviews', label: 'Design reviews', icon: ClipboardList },
             { id: 'rubrics', label: 'Microsoft & FAANG Rubrics', icon: Building2 },
             { id: 'roadmap', label: `60-Day Study Plan (${roadmapPct}%)`, icon: CalendarCheck },
           ].map((tab) => {
@@ -114,7 +127,8 @@ export default function PracticeView({
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setSection(tab.id)}
+                aria-pressed={active}
+                onClick={() => onSelectSection(tab.id)}
                 className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-mono font-semibold transition-all ${
                   active
                     ? 'border-ink bg-sage text-ink shadow-tactile-sm dark:border-sage dark:bg-[#2F5D34] dark:text-[#E8F8E5]'
@@ -129,7 +143,11 @@ export default function PracticeView({
         </div>
       </div>
 
-      {/* SECTION 1: 50-QUESTION MOCK EXAM */}
+      {section === 'reviews' && (
+        <DesignReviews designReviews={designReviews} onChangeDesignReviews={onChangeDesignReviews} />
+      )}
+
+      {/* Mock exam */}
       {section === 'quiz' && currentQ && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           <div className="lg:col-span-8 space-y-4">
@@ -140,11 +158,8 @@ export default function PracticeView({
                   <button
                     key={dom}
                     type="button"
-                    onClick={() => {
-                      setDomainFilter(dom);
-                      setQIndex(0);
-                      setSubmitted(false);
-                    }}
+                    aria-pressed={domainFilter === dom}
+                    onClick={() => onSelectSection(domainRoute(dom))}
                     className={`rounded-lg border px-2.5 py-1 text-[11px] font-mono font-semibold ${
                       domainFilter === dom
                         ? 'border-ink bg-sage text-ink dark:border-sage dark:bg-sage-dark dark:text-[#C9F2BE]'
@@ -264,6 +279,13 @@ export default function PracticeView({
                       Staff Engineer Explanation
                     </div>
                     {currentQ.explanation}
+                    {currentQ.lessonId && (
+                      <p className="mt-2">
+                        <a href={'#/' + currentQ.lessonId + '/1'} className="font-semibold underline underline-offset-4">
+                          Revisit this lesson
+                        </a>
+                      </p>
+                    )}
                   </div>
                 )}
 

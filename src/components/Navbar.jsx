@@ -36,7 +36,7 @@ export default function Navbar({
       <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-2 px-3 sm:px-5">
         {/* Left: Menu toggle + Brand */}
         <div className="flex items-center gap-2.5 min-w-0">
-          {activeTab === 'learn' && (
+          {activeTab === 'learn' && onToggleSidebar && (
             <button
               type="button"
               onClick={onToggleSidebar}
@@ -93,6 +93,7 @@ export default function Navbar({
           <button
             type="button"
             onClick={onOpenSearch}
+            aria-label="Search lessons, patterns, and labs"
             className="inline-flex items-center gap-2 rounded-xl border border-ink/20 bg-paper-card px-2.5 sm:px-3 py-1.5 text-xs font-mono text-ink-muted hover:border-ink/45 hover:text-ink dark:border-ink-border dark:bg-ink-card dark:text-paper-ink/70"
           >
             <Search className="h-3.5 w-3.5" />

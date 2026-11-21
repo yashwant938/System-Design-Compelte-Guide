@@ -1,5 +1,5 @@
 // 12 Gap-Closure Lessons from karanpratapsingh/system-design & Staff Infrastructure Internals
-// Brings the complete curriculum to exactly 100 interactive multi-step lessons across 14 modules!
+// Additional lessons in the foundational modules.
 
 export const EXTRA_MOD_01_FOUNDATIONS = [
   {
@@ -235,12 +235,12 @@ export const EXTRA_MOD_02_SCALING = [
         stage: 'SOLUTION',
         title: 'Preventing Two Active Primaries (Split-Brain) with Quorum & STONITH',
         body: [
-          'In a 2-node Active-Passive cluster, if the heartbeat cable snaps, Standby assumes Primary died and promotes itself — now **BOTH nodes accept writes** and corrupt data permanently (**Split-Brain**)!',
-          '**Fix**: 1) Require an **odd-node Quorum (3+ witnesses / etcd)** to hold leadership, and 2) **STONITH ("Shoot The Other Node In The Head")** — power-fence or revoke the old primary’s storage/cloud API lease BEFORE the new primary accepts a single write!',
+          'A broken heartbeat link leaves the standby unable to distinguish a network partition from a primary failure. If it promotes itself while the original primary still accepts writes, both may acknowledge conflicting updates.',
+          'A third voting member can break the tie between two data nodes. Before enabling writes on the replacement, fence the old primary by isolating its power or enforcing a newer ownership epoch at storage.',
         ],
         callout: {
           type: 'INTERVIEW SIGNAL',
-          text: 'Never design a 2-node HA cluster without a **3rd Tie-Breaker / Witness Node (Quorum)** + **Fencing Token / STONITH** — 2 nodes alone cannot distinguish "peer died" from "heartbeat link dropped"!',
+          text: 'A witness helps decide which partition may promote. Explain how storage will reject writes from a paused former leader after it resumes.',
         },
         scene: {
           hud: [

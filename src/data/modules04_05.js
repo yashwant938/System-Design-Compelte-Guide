@@ -649,6 +649,11 @@ export const MODULE_05_RELIABILITY = {
       level: 'Beginner',
       companies: ['Google', 'Microsoft', 'Datadog', 'Amazon'],
       tags: ['prometheus', 'grafana', 'opentelemetry', 'jaeger', 'elk', 'sli', 'slo', 'sla', 'error budget'],
+      sources: [
+        { title: 'Google SRE · Service level objectives', url: 'https://sre.google/sre-book/service-level-objectives/' },
+        { title: 'Google SRE Workbook · Alerting on SLOs', url: 'https://sre.google/workbook/alerting-on-slos/' },
+        { title: 'OpenTelemetry · Sampling', url: 'https://opentelemetry.io/docs/concepts/sampling/' },
+      ],
       objectives: [
         'Distinguish the Three Pillars: Metrics (what), Traces (where), Logs (why)',
         'Propagate W3C `traceparent` TraceID/SpanID across microservices and Kafka',
@@ -666,13 +671,13 @@ export const MODULE_05_RELIABILITY = {
           ],
           callout: {
             type: 'KEY IDEA',
-            text: 'Don’t trace 100% of 1M RPS requests — use **Tail-Based Sampling**: keep 1% of fast 200 OK traces, and **100% of 5xx errors and slow p99 traces**!',
+            text: '**Tail sampling** lets a collector retain traces based on observed errors or latency. Budget for buffering spans while the decision is pending. Use counters over eligible requests to calculate success rates because sampled traces can overrepresent errors.',
           },
           scene: {
             hud: [
               { label: 'METRICS', value: 'RED · Prometheus', status: 'good' },
               { label: 'TRACING', value: 'OTel TraceID', status: 'good' },
-              { label: 'SAMPLING', value: 'Tail-Based (100% err)', status: 'good' },
+              { label: 'SAMPLING', value: 'Prioritize errors', status: 'good' },
               { label: 'ERROR BUDGET', value: '0.1% / 30 days', status: 'info' },
             ],
             nodes: [
@@ -696,26 +701,26 @@ export const MODULE_05_RELIABILITY = {
         {
           shortLabel: 'SLI / SLO / SLA',
           stage: 'TECHNIQUE',
-          title: 'Google SRE: Error Budgets align Velocity vs Reliability',
+          title: 'Count the checkout requests that miss the objective',
           body: [
-            '**SLI** = actual measurement (`99.94%` of checkout calls < 300 ms). **SLO** = internal target (`99.9%`). **SLA** = external legal contract with financial credits (`99.5%`, always looser than SLO!).',
-            'With a `99.9%` monthly SLO, your **Error Budget** is `0.1%` (~43 minutes/month). Budget left? Ship fast! Budget burned? Freeze new features and pay down reliability debt.',
+            'Define a good checkout as an eligible request that succeeds within 300 ms. The **service level indicator (SLI)** is the measured fraction of good requests. The **service level objective (SLO)** sets a target for that fraction over a window. A **service level agreement (SLA)** specifies commitments to users and the consequences of missing them. Its definitions, window and thresholds come from the agreement.',
+            'In a 30-day window with one million eligible requests, a 99.9% objective allows 1,000 misses. At 99.94% good, 600 missed and 400 remain in the **error budget**. A separate time-based 99.9% availability objective over 30 days permits 43.2 minutes of unavailability. Request-based misses can cluster in a busy minute or spread over many hours.',
           ],
           callout: {
             type: 'INTERVIEW SIGNAL',
-            text: 'Alert on **SLO Burn Rate** (symptoms hurting users) rather than noisy CPU spikes — e.g., page on-call if 2% of your 30-day error budget burns in 1 hour!',
+            text: '**Burn rate** is the observed bad-request fraction divided by the allowed fraction. An error rate of 2% against a 0.1% allowance burns at 20×. Compare recent and sustained windows when deciding whether to page.',
           },
           scene: {
             hud: [
               { label: 'SLI (MEASURED)', value: '99.94%', status: 'good' },
               { label: 'SLO (TARGET)', value: '99.90%', status: 'good' },
-              { label: 'SLA (CONTRACT)', value: '99.50%', status: 'info' },
-              { label: 'BUDGET LEFT', value: '60% Remaining', status: 'good' },
+              { label: 'MISSES', value: '600 of 1,000 allowed', status: 'info' },
+              { label: 'BUDGET LEFT', value: '400 (40%)', status: 'good' },
             ],
             nodes: [
-              { id: 'sli', type: 'hex', x: 165, y: 215, label: 'SLI Metric', sublabel: 'Real User Latency', tone: 'blue' },
-              { id: 'slo', type: 'hex', x: 400, y: 215, label: 'SLO Budget', sublabel: '43 min / mo', tone: 'green', badge: 'healthy burn', badgeTone: 'green' },
-              { id: 'act', type: 'hex', x: 635, y: 215, label: 'Release Gate', sublabel: 'Ship or Freeze', tone: 'purple' },
+              { id: 'sli', type: 'hex', x: 165, y: 215, label: 'SLI', sublabel: 'Good / eligible', tone: 'blue' },
+              { id: 'slo', type: 'hex', x: 400, y: 215, label: 'Error budget', sublabel: '1,000 misses', tone: 'green', badge: '400 remaining', badgeTone: 'green' },
+              { id: 'act', type: 'hex', x: 635, y: 215, label: 'Release policy', sublabel: 'Review burn rate', tone: 'purple' },
             ],
             edges: [
               { from: 'sli', to: 'slo', label: 'compare', packetColor: 'blue', speed: 1.8 },
