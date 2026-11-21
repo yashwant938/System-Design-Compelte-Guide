@@ -1,4 +1,4 @@
-// 50 Staff-Level Interview Questions, 4 Big Tech Company Rubrics, 60-Day Study Roadmap, and Visual Cheatsheets Data
+import { SYSTEMS_REVIEW_QUESTIONS } from './systemsReviewQuestions.js';
 
 export const COMPANY_RUBRICS = [
   {
@@ -95,7 +95,7 @@ export const ROADMAP_60_DAYS = [
   { id: 'w6-b', week: 'Week 6', title: 'All 23 Gang of Four Design Patterns', detail: 'Drill all 23 patterns in the GoF Explorer — focus deeply on the Power-8 (Strategy, State, Observer, Factory, Decorator, Command, Chain, Facade).' },
   { id: 'w7-a', week: 'Week 7', title: 'Machine Coding LLD Part 1 (5 Systems)', detail: 'Code from scratch (timed 45m each): Parking Lot, Elevator LOOK Dispatcher, BookMyShow Seat Lock, Splitwise, and LRU/LFU+TTL Cache.' },
   { id: 'w7-b', week: 'Week 7', title: 'Machine Coding LLD Part 2 (5 Systems)', detail: 'Code from scratch (timed 45m each): Rate Limiter SDK, Async Log4j Logger, Vending Machine/ATM, Chess Engine, and Task Scheduler.' },
-  { id: 'w8-a', week: 'Week 8', title: 'Timed Mock Exams & Gap Closure', detail: 'Score 90%+ on the 50-Question Staff Mock Exam across every domain; review every missed question in the corresponding lesson.' },
+  { id: 'w8-a', week: 'Week 8', title: 'Timed mock exams and design reviews', detail: 'Revisit missed quiz questions, then write a capstone design and compare its failure handling with the worked review.' },
   { id: 'w8-b', week: 'Week 8', title: 'Company-Specific Final Rehearsal', detail: 'Review Microsoft / Google / Amazon / Meta Rubrics, memorize Latency & Napkin Math Cheatsheets, and do 3 full 45-min spoken mocks.' },
 ];
 
@@ -274,10 +274,10 @@ export const QUIZ_BANK = [
     id: 'q14',
     domain: 'Data & Consensus',
     difficulty: 'Medium',
-    q: 'In a leaderless Dynamo/Cassandra cluster with N = 5 replicas, which (W, R) quorum guarantees every read overlaps with the latest write?',
+    q: 'From a fixed set of five replicas, which acknowledgement counts guarantee that a later read contacts at least one replica that acknowledged a completed write?',
     options: ['W = 2, R = 2', 'W = 1, R = 3', 'W = 3, R = 3', 'W = 2, R = 3'],
     answer: 2,
-    explanation: 'Strong quorum overlap requires W + R > N. Here 3 + 3 = 6 > 5 (whereas 2+3=5 does not guarantee overlap!).',
+    explanation: 'Any two sets of three drawn from five intersect. Substituting other nodes for unavailable replicas changes that assumption. Ordering concurrent versions requires an additional protocol.',
   },
   {
     id: 'q15',
@@ -286,7 +286,7 @@ export const QUIZ_BANK = [
     q: 'Why are Raft / ZooKeeper / etcd consensus clusters deployed with an ODD number of nodes (3 or 5) instead of 4?',
     options: [
       'Even-numbered clusters cannot boot on Linux',
-      'A 4-node cluster needs 3 votes (tolerates 1 failure) — identical fault tolerance to 3 nodes, with worse latency and split-vote risk',
+      'A 4-voter cluster needs 3 votes. A 3-voter cluster needs 2. Both can keep a majority after one failure.',
       'Raft algorithms require prime numbers only',
       '4 nodes double storage capacity',
     ],
@@ -346,7 +346,7 @@ export const QUIZ_BANK = [
     q: 'Alice updates her profile bio on the Primary DB, refreshes immediately, hits an async Read Replica with 200ms lag, and sees her old bio. Which consistency guarantee was violated?',
     options: ['Linearizability only', 'Read-Your-Writes (Read-After-Write) Consistency', 'Durability', 'Atomicity'],
     answer: 1,
-    explanation: 'Fix Read-Your-Writes by routing a user’s own reads to the primary for a short window after edits, or passing their last-written LSN/timestamp to ensure the replica has caught up.',
+    explanation: 'Read from the current primary containing the write, or carry the committed log position and serve from a replica that has applied it. Replica lag can exceed a fixed delay after an edit.',
   },
   {
     id: 'q21',
@@ -805,12 +805,12 @@ export const QUIZ_BANK = [
     q: 'Why did Slack place Apache Kafka + `JQRelay` in front of its Redis job queues?',
     options: [
       'Redis cannot pop items in under 100 ms',
-      'Kafka absorbs multi-hour multi-TB worker backlogs durably on disk, while `JQRelay` meters jobs into Redis ONLY when Redis RAM is below its backpressure watermark — preventing Redis OOM crashes and failover job loss',
+      'Kafka buffers incoming jobs on disk while JQRelay applies configurable per-queue limits when enqueuing into Redis.',
       'Kafka replaces all SQL databases at Slack',
       'Redis forbids multiple consumer threads',
     ],
     answer: 1,
-    explanation: 'Kafka provides durable shock absorption while Redis keeps its fast fine-grained worker execution & delayed retry capabilities without ever hitting maxmemory OOM.',
+    explanation: 'Operators could change a queue’s target rate or pause it to give Redis and workers time to recover. JQRelay advanced the Kafka offset after the job reached Redis. Operators still had to monitor retention and downstream capacity.',
   },
   {
     id: 'q55',
@@ -1163,15 +1163,15 @@ export const QUIZ_BANK = [
     id: 'q80',
     domain: 'HLD Core',
     difficulty: 'Hard',
-    q: 'In a 2-node Active-Passive HA database cluster, what happens if the private heartbeat link snaps with no 3rd witness or STONITH fencing?',
+    q: 'Two database nodes lose their heartbeat link. If the standby promotes itself on timeout and the original primary can still write, which failure becomes possible?',
     options: [
       'Both nodes automatically merge writes safely',
-      'Split-Brain: Standby assumes Primary died and promotes itself while Primary is still accepting writes — permanently corrupting data!',
+      'Split-brain. Both nodes may acknowledge conflicting writes.',
       'DNS shuts down the entire internet',
       'RAID 10 resolves the network partition automatically',
     ],
     answer: 1,
-    explanation: 'Always use an odd-node Quorum (3+ witnesses / etcd) + STONITH / Fencing Tokens so at most one primary can ever commit writes.',
+    explanation: 'An unreachable peer may still be serving clients. Establish exclusive write authority through a quorum-backed decision and enforce it at storage, or fence the previous writer before promotion.',
   },
   {
     id: 'q81',
@@ -1448,6 +1448,7 @@ export const QUIZ_BANK = [
     answer: 1,
     explanation: 'SkipLists match balanced Red-Black Tree O(log N) complexity while being dramatically simpler to implement and supporting lock-free/fine-grained concurrent range scans!',
   },
+  ...SYSTEMS_REVIEW_QUESTIONS,
 ];
 
 export const OSI_AND_STORAGE_MATRIX = {

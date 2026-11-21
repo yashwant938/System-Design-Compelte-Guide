@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CURRICULUM_MODULES, getAllLessons } from '../src/data/curriculum.js';
+import { CURRICULUM_MODULES, findLessonById, getAllLessons } from '../src/data/curriculum.js';
+import { STUDY_PATHS } from '../src/data/studyPaths.js';
 import { GOF_PATTERNS_23, SOLID_PRINCIPLES } from '../src/data/gofPatterns23.js';
 import {
   COMPANY_RUBRICS,
@@ -11,11 +12,11 @@ import {
   ROADMAP_60_DAYS,
 } from '../src/data/practiceAndCheatsheets.js';
 
-test('Complete 14-module HLD + In-The-Wild + LLD curriculum has unique IDs and valid step scenes', () => {
+test('curriculum preserves the published inventory and renders complete scenes', () => {
   const seenModIds = new Set();
   const seenLessonIds = new Set();
 
-  assert.equal(CURRICULUM_MODULES.length, 14, 'Expected all 14 HLD + In-The-Wild + LLD modules');
+  assert.equal(CURRICULUM_MODULES.length, 17);
 
   for (const mod of CURRICULUM_MODULES) {
     assert.ok(mod.id && !seenModIds.has(mod.id), `Duplicate or missing module id: ${mod.id}`);
@@ -46,7 +47,12 @@ test('Complete 14-module HLD + In-The-Wild + LLD curriculum has unique IDs and v
 
   const all = getAllLessons();
   assert.equal(all.length, seenLessonIds.size);
-  assert.equal(all.length, 100, `Expected all 100 interactive HLD + In-The-Wild + LLD lessons, got ${all.length}`);
+  assert.equal(all.length, 116);
+  for (const [i, { lesson }] of all.entries()) {
+    const entry = findLessonById(lesson.id);
+    assert.equal(entry.prevLesson, all[i - 1]?.lesson || null);
+    assert.equal(entry.nextLesson, all[i + 1]?.lesson || null);
+  }
 });
 
 test('All 23 GoF design patterns and 5 SOLID principles are complete', () => {
@@ -57,12 +63,13 @@ test('All 23 GoF design patterns and 5 SOLID principles are complete', () => {
   assert.equal(GOF_PATTERNS_23.filter((p) => p.category === 'Behavioral').length, 11);
 });
 
-test('100-question quiz bank, 6 core patterns, 4 company rubrics, 60-day roadmap & cheatsheets are valid', () => {
-  assert.equal(QUIZ_BANK.length, 100, 'Expected 100 curated Staff-level interview questions');
+test('question bank, reference materials and roadmap are valid', () => {
+  assert.equal(QUIZ_BANK.length, 116);
   const seenQ = new Set();
   for (const q of QUIZ_BANK) {
     assert.ok(q.id && !seenQ.has(q.id), `Duplicate quiz id: ${q.id}`);
     seenQ.add(q.id);
+    if (q.lessonId) assert.ok(findLessonById(q.lessonId), q.lessonId);
     assert.equal(q.options.length, 4, `Quiz ${q.id} must have 4 options`);
     assert.ok(q.answer >= 0 && q.answer < 4, `Quiz ${q.id} answer out of bounds`);
     assert.ok(q.explanation && q.explanation.length > 20, `Quiz ${q.id} missing explanation`);
@@ -72,4 +79,18 @@ test('100-question quiz bank, 6 core patterns, 4 company rubrics, 60-day roadmap
   assert.equal(ROADMAP_60_DAYS.length, 16);
   assert.ok(LATENCY_LADDER.length >= 10);
   assert.ok(DECISION_MATRICES.length >= 3);
+});
+
+test('study paths resolve and every new lesson has primary reading and a review question', () => {
+  for (const path of STUDY_PATHS) {
+    assert.equal(new Set(path.lessons).size, path.lessons.length);
+    for (const id of path.lessons) assert.ok(findLessonById(id), id);
+  }
+  for (const mod of CURRICULUM_MODULES.slice(14)) {
+    for (const lesson of mod.lessons) {
+      assert.ok(lesson.sources?.length, lesson.id);
+      assert.ok(lesson.sources.every(({ url, title }) => new URL(url).protocol === 'https:' && title), lesson.id);
+      assert.ok(QUIZ_BANK.some((question) => question.lessonId === lesson.id), lesson.id);
+    }
+  }
 });

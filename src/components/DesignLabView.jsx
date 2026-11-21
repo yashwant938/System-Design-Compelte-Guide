@@ -15,15 +15,12 @@ import {
   Unlock,
   Zap,
 } from 'lucide-react';
+import QueueRecoveryLab from './QueueRecoveryLab.jsx';
+import { admitBurst, advanceLimiter, estimateCapacity, hashKey, initialLimiter, slidingEstimate } from '../utils/labModels.js';
 
 // Deterministic fast string hash -> [0, 360) degrees on ring
 function hashAngle(str) {
-  let h = 2166136261;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return ((h >>> 0) % 3600) / 10;
+  return (hashKey(str) % 3600) / 10;
 }
 
 const NODE_COLORS = ['#4A89DC', '#3B9C52', '#7C5CE6', '#D9822B', '#DC5B4B', '#0D9488'];
@@ -66,42 +63,30 @@ function ConsistentHashingLab() {
     [nodes, vNodes]
   );
 
-  const handleAddNode = () => {
-    if (nodes.length >= 6) return;
-    const nextName = `Node-${String.fromCharCode(65 + nodes.length)}`;
-    const nextNodes = [...nodes, nextName];
+  const changeNodes = (nextNodes, action) => {
     const next = computeAssignment(nextNodes, vNodes);
     let movedConsistent = 0;
     let movedModulo = 0;
-    sampleKeys.forEach((k, idx) => {
+    sampleKeys.forEach((k) => {
       if (next.keyOwners[k] !== keyOwners[k]) movedConsistent++;
-      if ((idx % nextNodes.length) !== (idx % nodes.length)) movedModulo++;
+      const hash = hashKey(k);
+      if (nextNodes[hash % nextNodes.length] !== nodes[hash % nodes.length]) movedModulo++;
     });
     setLastRemap({
-      action: `Added ${nextName}`,
+      action,
       consistentPct: Math.round((movedConsistent / sampleKeys.length) * 100),
       moduloPct: Math.round((movedModulo / sampleKeys.length) * 100),
     });
     setNodes(nextNodes);
   };
 
+  const handleAddNode = () => {
+    const nextName = `Node-${String.fromCharCode(65 + nodes.length)}`;
+    changeNodes([...nodes, nextName], `Added ${nextName}`);
+  };
+
   const handleRemoveNode = () => {
-    if (nodes.length <= 2) return;
-    const removed = nodes[nodes.length - 1];
-    const nextNodes = nodes.slice(0, -1);
-    const next = computeAssignment(nextNodes, vNodes);
-    let movedConsistent = 0;
-    let movedModulo = 0;
-    sampleKeys.forEach((k, idx) => {
-      if (next.keyOwners[k] !== keyOwners[k]) movedConsistent++;
-      if ((idx % nextNodes.length) !== (idx % nodes.length)) movedModulo++;
-    });
-    setLastRemap({
-      action: `Removed ${removed}`,
-      consistentPct: Math.round((movedConsistent / sampleKeys.length) * 100),
-      moduloPct: Math.round((movedModulo / sampleKeys.length) * 100),
-    });
-    setNodes(nextNodes);
+    changeNodes(nodes.slice(0, -1), `Removed ${nodes[nodes.length - 1]}`);
   };
 
   return (
@@ -173,11 +158,12 @@ function ConsistentHashingLab() {
               min="1"
               max="18"
               value={vNodes}
-              onChange={(e) => setVNodes(Number(e.target.value))}
+              aria-label="Virtual nodes per server"
+              onChange={(e) => { setVNodes(Number(e.target.value)); setLastRemap(null); }}
               className="w-full accent-emerald-700"
             />
             <p className="text-[11px] font-mono text-ink-muted dark:text-paper-ink/70">
-              Slide from 1 vNode → 15+ vNodes and watch key skew flatten dramatically!
+              Change the number of virtual nodes and compare the busiest server with the least loaded server.
             </p>
           </div>
 
@@ -231,53 +217,10 @@ function ConsistentHashingLab() {
 function RateLimiterLab() {
   const [capacity, setCapacity] = useState(6);
   const [refillRate, setRefillRate] = useState(1); // per sec
-  const [tbTokens, setTbTokens] = useState(6);
-  const [fixedCount, setFixedCount] = useState(0);
-  const [prevFixed, setPrevFixed] = useState(4);
-  const [windowProgress, setWindowProgress] = useState(0.75);
-  const [log, setLog] = useState([]);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setTbTokens((t) => Math.min(capacity, Number((t + refillRate * 0.5).toFixed(2))));
-    }, 500);
-    return () => clearInterval(id);
-  }, [capacity, refillRate]);
-
-  const sendRequests = (count) => {
-    let curTokens = tbTokens;
-    let curFixed = fixedCount;
-    const entries = [];
-    for (let i = 0; i < count; i++) {
-      const tbAllow = curTokens >= 1;
-      if (tbAllow) curTokens = Number((curTokens - 1).toFixed(2));
-
-      const fwAllow = curFixed < capacity;
-      if (fwAllow) curFixed += 1;
-
-      const weighted = prevFixed * (1 - windowProgress) + curFixed;
-      const swAllow = weighted <= capacity;
-
-      entries.push({
-        id: `${Date.now()}-${Math.random()}`,
-        time: new Date().toLocaleTimeString().split(' ')[0],
-        tb: tbAllow,
-        fw: fwAllow,
-        sw: swAllow,
-      });
-    }
-    setTbTokens(curTokens);
-    setFixedCount(curFixed);
-    setLog((prev) => [...entries.reverse(), ...prev].slice(0, 12));
-  };
-
-  const resetWindow = () => {
-    setPrevFixed(fixedCount);
-    setFixedCount(0);
-    setWindowProgress(0.15);
-  };
-
-  const swWeighted = (prevFixed * (1 - windowProgress) + fixedCount).toFixed(1);
+  const [state, setState] = useState(initialLimiter);
+  const { tokens: tbTokens, fixed: fixedCount, log } = state;
+  const sendRequests = (count) => setState((prev) => admitBurst(prev, count, capacity));
+  const advance = (seconds) => setState((prev) => advanceLimiter(prev, seconds, capacity, refillRate));
 
   return (
     <div className="space-y-4">
@@ -285,7 +228,7 @@ function RateLimiterLab() {
         <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
           <label className="flex items-center gap-2">
             Limit/Cap: <strong>{capacity}</strong>
-            <input type="range" min="3" max="12" value={capacity} onChange={(e) => { const v = Number(e.target.value); setCapacity(v); setTbTokens(v); }} />
+            <input type="range" min="3" max="12" value={capacity} onChange={(e) => { const v = Number(e.target.value); setCapacity(v); setState((prev) => ({ ...prev, tokens: Math.min(v, prev.tokens) })); }} />
           </label>
           <label className="flex items-center gap-2">
             Refill/s: <strong>{refillRate}</strong>
@@ -299,12 +242,14 @@ function RateLimiterLab() {
           <button type="button" onClick={() => sendRequests(5)} className="notebook-btn text-xs">
             <Flame className="h-3.5 w-3.5 text-coral-strong" /> Fire Burst ×5
           </button>
-          <button type="button" onClick={resetWindow} className="notebook-btn text-xs">
+          <button type="button" onClick={() => advance(1)} className="notebook-btn text-xs">Advance 1 second</button>
+          <button type="button" onClick={() => advance(60 - state.second % 60)} className="notebook-btn text-xs">
             <RefreshCw className="h-3.5 w-3.5" /> Cross Minute Boundary
           </button>
         </div>
       </div>
 
+      <p className="text-sm">Simulated time <strong>{state.second}s</strong>. Fill the current window, cross the minute boundary, then send another burst. All three limiters see the same arrivals.</p>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="notebook-card p-4 space-y-2">
           <div className="font-display font-bold">1. Token Bucket</div>
@@ -323,17 +268,17 @@ function RateLimiterLab() {
             {fixedCount} / {capacity} used
           </div>
           <p className="text-[11px] font-mono text-ink-muted">
-            Click &ldquo;Cross Minute Boundary&rdquo; then &ldquo;Burst ×5&rdquo; to trigger the classic <strong>2× boundary spike bug</strong>!
+            Requests count toward the current 60-second window. Two full allowances can arrive close together on opposite sides of a boundary.
           </p>
         </div>
 
         <div className="notebook-card p-4 space-y-2">
           <div className="font-display font-bold">3. Sliding Window Counter</div>
           <div className="text-2xl font-display font-bold text-lavender-strong dark:text-[#C4B5FD]">
-            {swWeighted} / {capacity} est
+            {slidingEstimate(state).toFixed(1)} / {capacity} est
           </div>
           <p className="text-[11px] font-mono text-ink-muted">
-            Formula: prev({prevFixed}) × {(1 - windowProgress).toFixed(2)} + cur({fixedCount}) — blocks boundary spikes in O(1) RAM!
+            Previous accepts ({state.previousSliding}) × remaining fraction ({((60 - state.second % 60) / 60).toFixed(2)}) + current accepts ({state.sliding}). This approximates a rolling window.
           </p>
         </div>
       </div>
@@ -392,7 +337,6 @@ function CacheLruStampedeLab() {
     setStampedeResult({
       concurrentReqs: 50,
       dbQueries: singleFlight ? 1 : 50,
-      dbCpu: singleFlight ? '14% (Healthy ✓)' : '99% (Outage! ✕)',
       mode: singleFlight ? 'Single-Flight Mutex Coalescing ON' : 'No Protection (Thundering Herd)',
     });
   };
@@ -473,7 +417,7 @@ function CacheLruStampedeLab() {
             <div className="font-bold">{stampedeResult.mode}</div>
             <div>Incoming Requests: <strong>{stampedeResult.concurrentReqs}</strong></div>
             <div>Queries Hitting Postgres DB: <strong>{stampedeResult.dbQueries}</strong></div>
-            <div>Database CPU: <strong>{stampedeResult.dbCpu}</strong></div>
+            <div>Assumes every request misses the same key before the first fill completes.</div>
           </div>
         )}
       </div>
@@ -488,6 +432,7 @@ function QuorumRaftLab() {
   const [r, setR] = useState(3);
   const [raftAlive, setRaftAlive] = useState([true, true, true, true, true]);
   const [term, setTerm] = useState(4);
+  const [leader, setLeader] = useState(0);
 
   const strongOverlap = w + r > n;
   const aliveCount = raftAlive.filter(Boolean).length;
@@ -495,13 +440,22 @@ function QuorumRaftLab() {
   const raftHealthy = aliveCount >= raftQuorum;
 
   const toggleRaftNode = (idx) => {
+    if (leader === idx) setLeader(null);
     setRaftAlive((prev) => prev.map((v, i) => (i === idx ? !v : v)));
+  };
+
+  const elect = () => {
+    const candidate = raftAlive.findIndex(Boolean);
+    if (candidate < 0) return;
+    setTerm((t) => t + 1);
+    setLeader(raftHealthy ? candidate : null);
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div className="notebook-card p-4 space-y-4">
-        <div className="font-display text-lg font-bold">Dynamo Quorum Calculator (W + R &gt; N)</div>
+        <div className="font-display text-lg font-bold">Read and write quorum overlap</div>
+        <p className="text-xs">Both operations choose from the same fixed replica set. Intersecting sets share a replica. Concurrent writes still need a version-ordering policy.</p>
 
         {[
           ['Replicas (N)', n, 3, 7, (val) => { setN(val); setW(Math.min(w, val)); setR(Math.min(r, val)); }],
@@ -513,7 +467,7 @@ function QuorumRaftLab() {
               <span>{label}</span>
               <strong>{val}</strong>
             </div>
-            <input type="range" min={min} max={max} value={val} onChange={(e) => setter(Number(e.target.value))} className="w-full accent-emerald-700" />
+            <input type="range" aria-label={label} min={min} max={max} value={val} onChange={(e) => setter(Number(e.target.value))} className="w-full accent-emerald-700" />
           </div>
         ))}
 
@@ -523,10 +477,10 @@ function QuorumRaftLab() {
             : 'border-coral-strong/50 bg-coral/35 dark:bg-coral-dark/70'
         }`}>
           <div className="font-bold text-sm">
-            W({w}) + R({r}) = {w + r} {strongOverlap ? `> N(${n}) — Strong Overlap ✓` : `≤ N(${n}) — Eventual / Stale Reads Possible!`}
+            Minimum shared replicas = max(0, {w} + {r} − {n}) = {Math.max(0, w + r - n)}
           </div>
-          <div>Write Failures Tolerated: <strong>{n - w} nodes</strong></div>
-          <div>Read Failures Tolerated: <strong>{n - r} nodes</strong></div>
+          <div>A write can complete with <strong>{n - w}</strong> unreachable replicas.</div>
+          <div>A read can complete with <strong>{n - r}</strong> unreachable replicas.</div>
         </div>
       </div>
 
@@ -537,11 +491,11 @@ function QuorumRaftLab() {
             Term #{term}
           </span>
         </div>
-        <p className="text-xs font-mono text-ink-muted">Click any node to kill or revive it — Raft needs majority ({raftQuorum}/5) to elect a leader &amp; commit writes!</p>
+        <p className="text-xs font-mono text-ink-muted">Toggle voters, then trigger an election. This model assumes connected live voters with identical logs and a single candidate. A majority ({raftQuorum}/5) must acknowledge a new entry.</p>
 
         <div className="grid grid-cols-5 gap-2">
           {raftAlive.map((alive, idx) => {
-            const isLeader = alive && raftHealthy && raftAlive.indexOf(true) === idx;
+            const isLeader = alive && leader === idx;
             return (
               <button
                 key={idx}
@@ -565,10 +519,10 @@ function QuorumRaftLab() {
         <div className="flex items-center justify-between gap-2">
           <div className={`text-xs font-mono font-bold ${raftHealthy ? 'text-sage-strong dark:text-[#A9E49E]' : 'text-coral-strong dark:text-[#FCA5A5]'}`}>
             {raftHealthy
-              ? `QUORUM MET (${aliveCount}/5 ≥ ${raftQuorum}) — Accepting Writes ✓`
-              : `NO QUORUM (${aliveCount}/5 < ${raftQuorum}) — CP Read-Only / Halted!`}
+              ? leader === null ? 'Majority available. Elect a leader to resume commits.' : `Leader can commit new entries (${aliveCount}/5 live).`
+              : `No majority (${aliveCount}/5 live). New entries cannot commit.`}
           </div>
-          <button type="button" onClick={() => setTerm((t) => t + 1)} className="notebook-btn text-xs">
+          <button type="button" disabled={!aliveCount} onClick={elect} className="notebook-btn text-xs disabled:opacity-40">
             Trigger Election
           </button>
         </div>
@@ -594,16 +548,8 @@ function CapacityEstimatorLab() {
   const [payloadKB, setPayloadKB] = useState(2);
   const [years, setYears] = useState(5);
 
-  const readQps = Math.round((dauM * 1e6 * readsPerUser) / 86400);
-  const peakReadQps = readQps * 3;
-  const writeQps = Math.round((dauM * 1e6 * writesPerUser) / 86400);
-  const peakWriteQps = writeQps * 3;
-  const dailyGB = (dauM * 1e6 * writesPerUser * payloadKB) / (1024 * 1024);
-  const totalTB = (dailyGB * 365 * years) / 1024;
-  const replicatedTB = totalTB * 3;
-  const egressGbps = ((peakReadQps * payloadKB * 1024 * 8) / 1e9).toFixed(2);
-  const cacheGB = Math.max(8, Math.round(dailyGB * 0.2 * 5));
-  const recommendedShards = Math.max(1, Math.ceil(Math.max(replicatedTB / 4, peakWriteQps / 4000)));
+  const { readQps, peakReadQps, peakWriteQps, dailyGB, totalTB, replicatedTB, egressGbps, cacheGB, shards } =
+    estimateCapacity({ dauM, readsPerUser, writesPerUser, payloadKB, years });
 
   return (
     <div className="space-y-4">
@@ -632,8 +578,8 @@ function CapacityEstimatorLab() {
           {[
             ['DAU (Millions)', dauM, 1, 1000, 1, setDauM],
             ['Reads / User / Day', readsPerUser, 1, 200, 1, setReadsPerUser],
-            ['Writes / User / Day', writesPerUser, 0.1, 100, 0.5, setWritesPerUser],
-            ['Avg Record Size (KB)', payloadKB, 0.2, 100, 0.5, setPayloadKB],
+            ['Writes / User / Day', writesPerUser, 0.05, 100, 0.05, setWritesPerUser],
+            ['Avg Record Size (kB)', payloadKB, 0.1, 100, 0.1, setPayloadKB],
             ['Retention (Years)', years, 1, 10, 1, setYears],
           ].map(([label, val, min, max, step, setter]) => (
             <div key={label} className="space-y-1">
@@ -641,22 +587,22 @@ function CapacityEstimatorLab() {
                 <span>{label}</span>
                 <strong>{val}</strong>
               </div>
-              <input type="range" min={min} max={max} step={step} value={val} onChange={(e) => setter(Number(e.target.value))} className="w-full accent-emerald-700" />
+              <input type="range" aria-label={label} min={min} max={max} step={step} value={val} onChange={(e) => setter(Number(e.target.value))} className="w-full accent-emerald-700" />
             </div>
           ))}
         </div>
 
         <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
-            ['Avg Read QPS', readQps.toLocaleString() + ' /s', 'DAU × reads ÷ 86,400'],
-            ['Peak Read QPS (3×)', peakReadQps.toLocaleString() + ' /s', 'Size LB & Cache for peak'],
-            ['Peak Write TPS (3×)', peakWriteQps.toLocaleString() + ' /s', 'Drives DB sharding'],
+            ['Avg Read QPS', Math.round(readQps).toLocaleString() + ' /s', 'DAU × reads ÷ 86,400'],
+            ['Peak Read QPS (3×)', Math.round(peakReadQps).toLocaleString() + ' /s', 'Three times average reads'],
+            ['Peak Write TPS (3×)', Math.round(peakWriteQps).toLocaleString() + ' /s', 'Three times average writes'],
             [`${years}-Yr Raw Storage`, `${totalTB.toFixed(1)} TB`, `${dailyGB.toFixed(1)} GB new / day`],
             ['3× Replicated Disk', `${replicatedTB.toFixed(1)} TB`, 'Primary + 2 Replicas'],
-            ['Peak Read Egress', `${egressGbps} Gbps`, Number(egressGbps) > 10 ? 'Needs CDN!' : 'Direct LB OK'],
-            ['80/20 Hot Cache RAM', `~${cacheGB} GB`, 'Redis Cluster memory'],
-            ['Suggested DB Shards', `${recommendedShards} Shards`, '4 TB or 4k TPS / shard'],
-            ['Architecture Verdict', recommendedShards > 4 ? 'Sharded + Redis' : 'Single Primary + Replicas', 'Right-sized to math'],
+            ['Peak Read Egress', `${egressGbps.toFixed(2)} Gbps`, 'One record per read, before caching'],
+            ['Hot Cache Payload', `${cacheGB.toFixed(1)} GB`, '20% of the last five days of writes'],
+            ['Logical DB Shards', String(shards), '4 TB raw or 4k writes/s per shard'],
+            ['Shard Copies', String(shards * 3), 'Three copies of each shard'],
           ].map(([title, val, sub]) => (
             <div key={title} className="notebook-card p-3.5">
               <div className="text-[10px] font-mono uppercase text-ink-muted">{title}</div>
@@ -839,12 +785,11 @@ const LAB_TABS = [
   { id: 'quorum', label: 'Quorum & Raft', icon: ShieldCheck },
   { id: 'capacity', label: 'Napkin Math Calc', icon: Calculator },
   { id: 'lld', label: 'LLD Locks & Elevator', icon: Cpu },
+  { id: 'backlog', label: 'Queue Recovery', icon: Layers },
 ];
 
-export default function DesignLabView({ initialLabId }) {
-  const [activeLab, setActiveLab] = useState(
-    LAB_TABS.some((l) => l.id === initialLabId) ? initialLabId : 'hashing'
-  );
+export default function DesignLabView({ initialLabId, onSelectLab }) {
+  const activeLab = LAB_TABS.some((l) => l.id === initialLabId) ? initialLabId : 'hashing';
 
   return (
     <div className="mx-auto max-w-[1320px] px-3 sm:px-5 py-6 space-y-5">
@@ -852,7 +797,7 @@ export default function DesignLabView({ initialLabId }) {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="text-[11px] font-mono uppercase tracking-wider text-sage-strong dark:text-[#A9E49E]">
-              Interactive Engineering Workbench · 6 Live Simulators
+              Interactive Engineering Workbench · {LAB_TABS.length} Simulators
             </div>
             <h1 className="font-display text-2xl sm:text-3xl font-bold mt-0.5">
               System Design <span className="term-highlight">Lab</span>
@@ -874,7 +819,8 @@ export default function DesignLabView({ initialLabId }) {
               <button
                 key={lab.id}
                 type="button"
-                onClick={() => setActiveLab(lab.id)}
+                aria-pressed={active}
+                onClick={() => onSelectLab(lab.id)}
                 className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-mono font-semibold transition-all ${
                   active
                     ? 'border-ink bg-sage text-ink shadow-tactile-sm dark:border-sage dark:bg-[#2F5D34] dark:text-[#E8F8E5]'
@@ -895,6 +841,7 @@ export default function DesignLabView({ initialLabId }) {
       {activeLab === 'quorum' && <QuorumRaftLab />}
       {activeLab === 'capacity' && <CapacityEstimatorLab />}
       {activeLab === 'lld' && <LldConcurrencyLab />}
+      {activeLab === 'backlog' && <QueueRecoveryLab />}
     </div>
   );
 }

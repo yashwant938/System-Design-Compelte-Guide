@@ -9,10 +9,8 @@ const defaultProgress = {
   bookmarkedIds: [],
   roadmapChecked: [],
   quizHistory: [],
-  lastVisited: {
-    tab: 'learn',
-    itemId: 'cdn',
-  },
+  lastVisited: null,
+  designReviews: {},
 };
 
 function setSessionCookie(userObj) {
@@ -114,7 +112,9 @@ export function loadProgress(profileKey) {
     const scopedKey = progressKeyFor(profileKey);
     let raw = window.localStorage.getItem(scopedKey);
 
-    if (!raw) {
+    // A v1 installation has one unscoped record. Later releases mirrored the
+    // last active profile there, so only migrate from a genuinely v1 store.
+    if (!raw && profileKey && !Object.keys(window.localStorage).some((key) => key.startsWith(PROGRESS_PREFIX))) {
       const legacyRaw = window.localStorage.getItem(LEGACY_STORAGE_KEY);
       if (legacyRaw) {
         raw = legacyRaw;
@@ -127,6 +127,7 @@ export function loadProgress(profileKey) {
     return {
       ...defaultProgress,
       ...parsed,
+      lastVisited: Number.isInteger(parsed.lastVisited?.step) && parsed.lastVisited.step >= 1 ? parsed.lastVisited : null,
       completedIds: Array.isArray(parsed.completedIds) ? Array.from(new Set(parsed.completedIds)) : [],
       bookmarkedIds: Array.isArray(parsed.bookmarkedIds) ? Array.from(new Set(parsed.bookmarkedIds)) : [],
       roadmapChecked: Array.isArray(parsed.roadmapChecked) ? Array.from(new Set(parsed.roadmapChecked)) : [],
@@ -142,7 +143,6 @@ export function saveProgress(state, profileKey) {
     const scopedKey = progressKeyFor(profileKey);
     const payload = JSON.stringify(state);
     window.localStorage.setItem(scopedKey, payload);
-    window.localStorage.setItem(LEGACY_STORAGE_KEY, payload);
   } catch {
     // Ignore quota/private-mode storage errors
   }
@@ -158,6 +158,8 @@ export function encodeSyncCode(user, progress) {
       bookmarkedIds: progress.bookmarkedIds,
       roadmapChecked: progress.roadmapChecked,
       quizHistory: (progress.quizHistory || []).slice(0, 10),
+      designReviews: progress.designReviews || {},
+      lastVisited: progress.lastVisited,
     },
   };
   const json = JSON.stringify(payload);

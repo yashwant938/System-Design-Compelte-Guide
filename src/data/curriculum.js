@@ -7,6 +7,9 @@ import { MODULE_14_ADVANCED_HLD } from './module14_advanced_hld.js';
 import { MODULE_13_IN_THE_WILD } from './module13_in_the_wild.js';
 import { MODULE_11_LLD_CORE } from './module11_lld_core.js';
 import { MODULE_12_LLD_SYSTEMS } from './module12_lld_systems.js';
+import { DISTRIBUTED_CORRECTNESS } from './distributedCorrectness.js';
+import { PRODUCTION_ENGINEERING } from './productionEngineering.js';
+import { DATA_PLATFORMS } from './dataPlatforms.js';
 import {
   EXTRA_MOD_01_FOUNDATIONS,
   EXTRA_MOD_02_SCALING,
@@ -35,36 +38,31 @@ const RAW_MODULES = [
   MODULE_13_IN_THE_WILD,
   MODULE_11_LLD_CORE,
   MODULE_12_LLD_SYSTEMS,
+  DISTRIBUTED_CORRECTNESS,
+  PRODUCTION_ENGINEERING,
+  DATA_PLATFORMS,
 ];
 
-// Merge gap-closure lessons into their exact logical modules & auto-assign sequential 01..14 numbers
+// Preserve published lesson IDs as modules grow.
 export const CURRICULUM_MODULES = RAW_MODULES.map((m, idx) => ({
   ...m,
   number: String(idx + 1).padStart(2, '0'),
   lessons: [...m.lessons, ...(EXTRA_BY_MODULE_ID[m.id] || [])],
 }));
 
+const allLessons = CURRICULUM_MODULES.flatMap((moduleMeta) =>
+  moduleMeta.lessons.map((lesson, lessonIndexInModule) => ({ lesson, moduleMeta, lessonIndexInModule }))
+);
+const lessonsById = new Map(allLessons.map((entry, index) => [entry.lesson.id, {
+  ...entry,
+  prevLesson: allLessons[index - 1]?.lesson || null,
+  nextLesson: allLessons[index + 1]?.lesson || null,
+}]));
+
 export function getAllLessons() {
-  const list = [];
-  CURRICULUM_MODULES.forEach((mod) => {
-    mod.lessons.forEach((lesson, idx) => {
-      list.push({
-        lesson,
-        moduleMeta: mod,
-        lessonIndexInModule: idx,
-      });
-    });
-  });
-  return list;
+  return allLessons;
 }
 
 export function findLessonById(lessonId) {
-  const all = getAllLessons();
-  const idx = all.findIndex((entry) => entry.lesson.id === lessonId);
-  if (idx === -1) return null;
-  return {
-    ...all[idx],
-    prevLesson: idx > 0 ? all[idx - 1].lesson : null,
-    nextLesson: idx < all.length - 1 ? all[idx + 1].lesson : null,
-  };
+  return lessonsById.get(lessonId) || null;
 }
